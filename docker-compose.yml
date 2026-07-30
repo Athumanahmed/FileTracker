@@ -28,10 +28,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio:
-        condition: service_started
-      ml-service:
-        condition: service_started
     ports:
       - "5051:5051"
 
