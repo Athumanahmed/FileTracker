@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id @default(cuid())
+
+  // personal Information
+  firstName  String
+  middleName String?
+  lastName   String
+  fullName   String?
+  gender     Gender?
+
+  dateOfBirth DateTime?
+
+  phoneNumber String @unique
+  email       String @unique
+
+  nationalId     String? @unique
+  employeeNumber String? @unique
+
+  profileImage String?
+
+  // Authentication
+  username     String @unique
+  passwordHash String
+
+  mustChangePassword Boolean   @default(true)
+  passwordChangedAt  DateTime?
+
+  lastLoginAt DateTime?
+
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+
+  authenticationMethod AuthenticationMethod @default(LOCAL)
+
+  // account status
+  status UserStatus @default(PENDING_ACTIVATION)
+
+  isActive Boolean @default(true)
+
+  // organization
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  unitId String?
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id])
+
+  // autdit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   User?   @relation("CreatedUsers", fields: [createdById], references: [id])
+
+  updatedById String?
+  updatedBy   User?   @relation("UpdatedUsers", fields: [updatedById], references: [id])
+
+  deletedAt    DateTime?
+  deletedById  String?
+  deletedBy    User?     @relation("DeletedUsers", fields: [deletedById], references: [id])
+  // reverse relations
+  createdUsers User[]    @relation("CreatedUsers")
+  updatedUsers User[]    @relation("UpdatedUsers")
+  deletedUsers User[]    @relation("DeletedUsers")
+
+  roles           UserRole[]
+  sessions        UserSession[]
+  passwordHistory PasswordHistory[]
+  refreshTokens   RefreshToken[]
+  loginAttempts   LoginAttempt[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([employeeNumber])
+}
+
+model Role {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  code        String  @unique
+  description String?
+
+  isSystem Boolean @default(false)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id String @id @default(cuid())
+
+  name        String
+  code        String       @unique
+  module      SystemModule
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([userId, roleId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ipAddress String?
+  userAgent String?
+
+  deviceName      String?
+  browser         String?
+  operatingSystem String?
+
+  isActive Boolean @default(true)
+
+  lastActivityAt DateTime?
+
+  expiresAt DateTime
+
+  createdAt     DateTime       @default(now())
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sessionId String?
+  session   UserSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tokenHash String       @unique
+
+  expiresAt DateTime
+
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+model PasswordHistory {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  passwordHash String
+
+  createdAt DateTime @default(now())
+}
+
+model LoginAttempt {
+  id String @id @default(cuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  username String
+
+  ipAddress String?
+
+  successful Boolean
+
+  attemptedAt DateTime @default(now())
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  action String
+
+  entity String
+
+  entityId String?
+
+  description String?
+
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Department {
+  id String @id @default(cuid())
+
+  name        String
+  code        String  @unique
+  description String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units Unit[]
+  users User[]
+
+  @@unique([name])
+  @@index([code])
+  @@index([name])
+}
+
+model Unit {
+  id String @id @default(cuid())
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  name String
+  code String
+
+  description String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  positions Position[]
+  users     User[]
+
+  @@unique([departmentId, code])
+  @@unique([departmentId, name])
+  @@index([departmentId])
+  @@index([code])
+}
+
+model Position {
+  id String @id @default(cuid())
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  title String
+  code  String
+
+  description String?
+
+  rank Int
+
+  positionType PositionType
+
+  isHead Boolean @default(false)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@unique([unitId, code])
+  @@unique([unitId, title])
+  @@index([unitId])
+  @@index([rank])
+  @@index([positionType])
+}
+
+enum PositionType {
+  EXECUTIVE
+  MANAGEMENT
+  SUPERVISORY
+  OPERATIONAL
+  SUPPORT
+}
+
+enum AuthenticationMethod {
+  LOCAL
+  LDAP
+  ACTIVE_DIRECTORY
+  SSO
+}
+
+enum UserStatus {
+  PENDING_ACTIVATION
+  ACTIVE
+  LOCKED
+  SUSPENDED
+  DISABLED
+  ARCHIVED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum SystemModule {
+  AUTHENTICATION
+  AUTHORIZATION
+  USERS
+  DEPARTMENTS
+  POSITIONS
+  FILE_TRACKING
+  WORKFLOW
+  REPORTS
+  SETTINGS
+}

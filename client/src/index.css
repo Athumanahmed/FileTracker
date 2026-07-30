@@ -1,0 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap");
+
+@import "tailwindcss";
+
+* {
+  font-family: "Google Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  button {
+    @apply cursor-pointer active:scale-95 transition-all duration-200 ease-in-out;
+  }
+}
+
+@theme {
+  --color-primaryBlue: #162660;
+  --color-primaryBlueDark: #0f1c47;
+  --color-primaryBlueLight: #eef1f8;
+  --color-goldAccent: #f2b705;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}

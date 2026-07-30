@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:15
+    container_name: FileTracker-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: FileTracker-@2026
+      POSTGRES_DB: FileTrackerDB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: fileTracker-backend
+    restart: always
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:FileTracker-@2026@db:5432/FileTrackerDB?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      ml-service:
+        condition: service_started
+    ports:
+      - "5051:5051"
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: fileTracker-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
