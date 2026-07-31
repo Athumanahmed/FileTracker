@@ -17,6 +17,7 @@ const BaseInput = ({
   labelClassName = "",
   leftIcon,
   rightIcon,
+  onRightIconClick,
   as = "input", // "input" | "textarea" | "select"
   rows = 3,
   options = [], // for select
@@ -112,11 +113,22 @@ const BaseInput = ({
           />
         )}
 
-        {/* RIGHT ICON (non-select only) */}
+        {/* RIGHT ICON (non-select only) -- interactive when onRightIconClick is given (e.g. password show/hide) */}
         {rightIcon && as !== "select" && (
-          <div className="absolute right-3 text-gray-400 pointer-events-none">
-            {rightIcon}
-          </div>
+          onRightIconClick ? (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={onRightIconClick}
+              className="absolute right-3 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {rightIcon}
+            </button>
+          ) : (
+            <div className="absolute right-3 text-gray-400 pointer-events-none">
+              {rightIcon}
+            </div>
+          )
         )}
       </div>
 

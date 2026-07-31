@@ -17,12 +17,18 @@ const refreshCookieOptions = {
   maxAge: REFRESH_MAX_AGE_MS,
 };
 
-// Readable by client JS on purpose -- see middlewares/csrf.js.
+// Readable by client JS on purpose -- see middlewares/csrf.js. Path is
+// site-wide ("/"), unlike the refresh cookie's narrower AUTH_COOKIE_PATH:
+// a cookie's path also gates which pages document.cookie can see it from,
+// not just which requests it's attached to -- the frontend SPA lives on
+// routes like "/" and "/login", not under /api/v1/auth, so scoping this
+// to AUTH_COOKIE_PATH would make it invisible to the JS that needs to
+// read it and echo it back as a header.
 const csrfCookieOptions = {
   httpOnly: false,
   secure: isProduction,
   sameSite: "strict",
-  path: AUTH_COOKIE_PATH,
+  path: "/",
   maxAge: REFRESH_MAX_AGE_MS,
 };
 
@@ -33,8 +39,10 @@ const setAuthCookies = (res, refreshToken) => {
 };
 
 const clearAuthCookies = (res) => {
+  // path must match how each cookie was originally set (see setAuthCookies)
+  // -- clearCookie only works if name+path+domain line up exactly.
   res.clearCookie(securityConfig.refreshTokenCookieName, { path: AUTH_COOKIE_PATH });
-  res.clearCookie(securityConfig.csrfCookieName, { path: AUTH_COOKIE_PATH });
+  res.clearCookie(securityConfig.csrfCookieName, { path: "/" });
 };
 
 export const login = asyncHandler(async (req, res) => {

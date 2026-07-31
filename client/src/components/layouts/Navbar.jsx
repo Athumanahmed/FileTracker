@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Globe, LogIn, Menu, X } from "lucide-react";
 import { imageAssets } from "../../assets/assets";
+import useAuthStore from "../../store/authStore";
+import UserMenu from "../shared/UserMenu";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -12,6 +14,8 @@ const navLinks = [
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const loadingUser = useAuthStore((state) => state.loadingUser);
 
   const isActive = (link) => Boolean(link.to) && pathname === link.to;
 
@@ -64,9 +68,21 @@ const Navbar = () => {
             English
             <ChevronDown className="size-3.5" />
           </button>
-          <button className="bg-white px-6 py-2.5 rounded-full hidden items-center gap-1 text-sm text-primaryBlue font-semibold md:flex">
-            Login
-          </button>
+
+          {loadingUser ? (
+            <span className="h-9 w-9 animate-pulse rounded-full bg-white/15" />
+          ) : user ? (
+            <UserMenu />
+          ) : (
+            <Link
+              to="/login"
+              className="hidden items-center gap-1 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-primaryBlue md:flex"
+            >
+              <LogIn className="size-4" />
+              Login
+            </Link>
+          )}
+
           <button
             onClick={() => setIsMenuOpen((prev) => !prev)}
             className="text-white lg:hidden"
@@ -111,6 +127,20 @@ const Navbar = () => {
                 </a>
               );
             })}
+
+            {/* Signed-in identity/logout is handled by the always-visible
+                UserMenu next to the hamburger button; only the logged-out
+                Login CTA needs a mobile-only home here. */}
+            {!loadingUser && !user && (
+              <Link
+                to="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="my-3 flex items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-sm font-semibold text-primaryBlue"
+              >
+                <LogIn className="size-4" />
+                Login
+              </Link>
+            )}
           </div>
         </nav>
       )}
