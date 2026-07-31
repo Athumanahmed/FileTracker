@@ -21,7 +21,7 @@ export async function seedAdmin() {
       fullName: "System Administrator",
       username: "admin",
       email: "admin@eftms.go.tz",
-      phoneNumber: "255700000000",
+      phoneNumber: "255768156839",
       passwordHash,
       mustChangePassword: true,
       status: "ACTIVE",

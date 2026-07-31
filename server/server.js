@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import "dotenv/config";
 
 import authRoutes from "./routes/auth.routes.js";
+import forgotPasswordRoutes from "./routes/forgotPassword.routes.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
 
@@ -42,6 +43,7 @@ app.get("/ip", (req, res) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/auth", forgotPasswordRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

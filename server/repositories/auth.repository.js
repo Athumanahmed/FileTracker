@@ -1,4 +1,6 @@
 import prisma from "../config/prisma.js";
+import { AUDIT_ACTIONS } from "../utils/auditActions.js";
+import { applyPasswordChange, revokeAllSessionsAndTokens } from "./password.repository.js";
 
 /**
  * Data-access layer for the auth module. Every Prisma call the module
@@ -40,6 +42,91 @@ export const updateLastLogin = (userId) =>
     data: { lastLoginAt: new Date() },
   });
 
+/**
+ * Fetches the profile fields exposed by GET /auth/me. Prisma `select`
+ * enforces the allowlist at the query level -- passwordHash and every
+ * other sensitive column are simply never read out of the database,
+ * rather than being fetched and stripped afterwards.
+ *
+ * Only permissions granted by a currently active role are included, to
+ * match the same active-role rule `userHasPermission` enforces.
+ */
+export const findAuthenticatedUser = (userId) =>
+  prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      phoneNumber: true,
+      firstName: true,
+      middleName: true,
+      lastName: true,
+      fullName: true,
+      profileImage: true,
+      status: true,
+      mustChangePassword: true,
+      authenticationMethod: true,
+      lastLoginAt: true,
+      createdAt: true,
+      updatedAt: true,
+      department: {
+        select: { id: true, name: true, code: true },
+      },
+      unit: {
+        select: { id: true, name: true, code: true },
+      },
+      position: {
+        select: { id: true, title: true, code: true },
+      },
+      roles: {
+        where: { role: { isActive: true } },
+        select: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              permissions: {
+                select: {
+                  permission: {
+                    select: { code: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+// ---------------------------------------------------------------------------
+// PasswordHistory
+// ---------------------------------------------------------------------------
+
+export const findRecentPasswordHistory = (userId, limit) =>
+  prisma.passwordHistory.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+/**
+ * Applies the mandatory first-login (or admin-forced) password change:
+ * see applyPasswordChange for the shared transaction shape. No extra
+ * writes beyond the common set -- unlike the OTP reset flow, there's no
+ * side record to clean up here.
+ */
+export const executeForceChangePassword = ({ userId, passwordHash, ipAddress }) =>
+  applyPasswordChange({
+    userId,
+    passwordHash,
+    ipAddress,
+    auditAction: AUDIT_ACTIONS.PASSWORD_CHANGED,
+    auditDescription: "Password changed on first login (mandatory change)",
+  });
+
 // ---------------------------------------------------------------------------
 // UserSession
 // ---------------------------------------------------------------------------
@@ -62,6 +149,18 @@ export const touchSessionActivity = (id) =>
     where: { id },
     data: { lastActivityAt: new Date() },
   });
+
+export const findSessionById = (id) => prisma.userSession.findUnique({ where: { id } });
+
+export const findActiveSessionsByUserId = (userId) =>
+  prisma.userSession.findMany({
+    where: { userId, isActive: true, expiresAt: { gt: new Date() } },
+    orderBy: { lastActivityAt: "desc" },
+  });
+
+/** Standalone "logout everywhere" -- same revocation logic the password-change flows use, just without a password update alongside it. */
+export const deactivateAllUserSessionsAndTokens = (userId) =>
+  prisma.$transaction((tx) => revokeAllSessionsAndTokens(tx, userId));
 
 // ---------------------------------------------------------------------------
 // RefreshToken

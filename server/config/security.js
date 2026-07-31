@@ -30,4 +30,32 @@ export const securityConfig = {
 
   refreshTokenCookieName: process.env.REFRESH_TOKEN_COOKIE_NAME || "eftms_refresh_token",
   csrfCookieName: process.env.CSRF_COOKIE_NAME || "eftms_csrf_token",
+
+  otpExpiryMs: parseDurationToMs(process.env.OTP_EXPIRY || "5m"),
+  otpMaxAttempts: Number(process.env.OTP_MAX_ATTEMPTS) || 5,
+
+  forgotPasswordRateLimitWindowMs: parseDurationToMs(
+    process.env.FORGOT_PASSWORD_RATE_LIMIT_WINDOW || "15m",
+  ),
+  forgotPasswordRateLimitMax: Number(process.env.FORGOT_PASSWORD_RATE_LIMIT_MAX) || 3,
+
+  verifyOtpRateLimitWindowMs: parseDurationToMs(
+    process.env.VERIFY_OTP_RATE_LIMIT_WINDOW || "5m",
+  ),
+  verifyOtpRateLimitMax: Number(process.env.VERIFY_OTP_RATE_LIMIT_MAX) || 5,
+
+  resendOtpRateLimitWindowMs: parseDurationToMs(
+    process.env.RESEND_OTP_RATE_LIMIT_WINDOW || "15m",
+  ),
+  resendOtpRateLimitMax: Number(process.env.RESEND_OTP_RATE_LIMIT_MAX) || 3,
+
+  resetPasswordRateLimitWindowMs: parseDurationToMs(
+    process.env.RESET_PASSWORD_RATE_LIMIT_WINDOW || "15m",
+  ),
+  resetPasswordRateLimitMax: Number(process.env.RESET_PASSWORD_RATE_LIMIT_MAX) || 3,
+
+  forceChangePasswordRateLimitWindowMs: parseDurationToMs(
+    process.env.FORCE_CHANGE_PASSWORD_RATE_LIMIT_WINDOW || "15m",
+  ),
+  forceChangePasswordRateLimitMax: Number(process.env.FORCE_CHANGE_PASSWORD_RATE_LIMIT_MAX) || 5,
 };

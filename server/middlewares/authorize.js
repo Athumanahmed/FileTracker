@@ -13,7 +13,7 @@ export const authorize = (permissionCode) => async (req, res, next) => {
     }
 
     const hasPermission = await authRepository.userHasPermission(
-      req.user.id,
+      req.user.userId,
       permissionCode,
     );
 

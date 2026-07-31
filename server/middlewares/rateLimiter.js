@@ -40,3 +40,58 @@ export const refreshLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitHandler,
 });
+
+/** Keyed by IP + phone so one noisy IP can't exhaust the limit for unrelated phone numbers. */
+const phoneKeyGenerator = (req) =>
+  `${ipKeyGenerator(req.ip)}:${req.body?.phoneNumber || "unknown"}`;
+
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: securityConfig.forgotPasswordRateLimitWindowMs,
+  max: securityConfig.forgotPasswordRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: phoneKeyGenerator,
+});
+
+export const verifyResetOtpLimiter = rateLimit({
+  windowMs: securityConfig.verifyOtpRateLimitWindowMs,
+  max: securityConfig.verifyOtpRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: phoneKeyGenerator,
+});
+
+export const resendResetOtpLimiter = rateLimit({
+  windowMs: securityConfig.resendOtpRateLimitWindowMs,
+  max: securityConfig.resendOtpRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: phoneKeyGenerator,
+});
+
+// No phone number available at this stage (identity comes from the reset
+// token in the Authorization header), so this is IP-only.
+export const resetPasswordLimiter = rateLimit({
+  windowMs: securityConfig.resetPasswordRateLimitWindowMs,
+  max: securityConfig.resetPasswordRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+/**
+ * Runs after `authenticate`, so req.user is already populated -- keyed by
+ * IP + user id to throttle current-password brute-forcing against one
+ * account without one noisy IP starving unrelated users on the same NAT.
+ */
+export const forceChangePasswordLimiter = rateLimit({
+  windowMs: securityConfig.forceChangePasswordRateLimitWindowMs,
+  max: securityConfig.forceChangePasswordRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.user?.userId || "unknown"}`,
+});

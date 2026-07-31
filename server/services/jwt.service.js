@@ -40,3 +40,26 @@ export const verifyRefreshToken = (token) =>
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
   });
+
+/**
+ * Short-lived token proving OTP-verified phone ownership for a single
+ * password reset. Carries the OTP row id so /reset-password can confirm
+ * it's redeeming the exact OTP that was verified, not just any OTP the
+ * user has ever had.
+ */
+export const signResetToken = ({ userId, otpId }) =>
+  jwt.sign(
+    { userId, otpId, type: "password_reset" },
+    jwtConfig.resetTokenSecret,
+    {
+      expiresIn: jwtConfig.resetTokenExpiresIn,
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
+    },
+  );
+
+export const verifyResetToken = (token) =>
+  jwt.verify(token, jwtConfig.resetTokenSecret, {
+    issuer: jwtConfig.issuer,
+    audience: jwtConfig.audience,
+  });

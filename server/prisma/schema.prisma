@@ -76,12 +76,13 @@ model User {
   updatedUsers User[]    @relation("UpdatedUsers")
   deletedUsers User[]    @relation("DeletedUsers")
 
-  roles           UserRole[]
-  sessions        UserSession[]
-  passwordHistory PasswordHistory[]
-  refreshTokens   RefreshToken[]
-  loginAttempts   LoginAttempt[]
-  auditLogs       AuditLog[]
+  roles             UserRole[]
+  sessions          UserSession[]
+  passwordHistory   PasswordHistory[]
+  refreshTokens     RefreshToken[]
+  loginAttempts     LoginAttempt[]
+  auditLogs         AuditLog[]
+  passwordResetOtps PasswordResetOtp[]
 
   @@index([status])
   @@index([departmentId])
@@ -207,6 +208,38 @@ model LoginAttempt {
   successful Boolean
 
   attemptedAt DateTime @default(now())
+}
+
+/**
+ * One row per outstanding phone-OTP password reset attempt. A new OTP
+ * (via /forgot-password or /resend-reset-otp) deletes any prior row for
+ * the user, so at most one active OTP ever exists per user at a time.
+ */
+model PasswordResetOtp {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Denormalized copy of the normalized phone number the OTP was sent to,
+  // kept for audit purposes independent of the user's current phoneNumber.
+  phoneNumber String
+
+  otpHash String
+
+  attempts Int @default(0)
+
+  expiresAt DateTime
+
+  verifiedAt DateTime?
+  usedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([phoneNumber])
+  @@index([expiresAt])
 }
 
 model AuditLog {

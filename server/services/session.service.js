@@ -33,3 +33,12 @@ export const endSession = async (sessionId) => {
   await refreshTokenService.revokeAllForSession(sessionId);
   await authRepository.deactivateSession(sessionId);
 };
+
+export const getSessionById = (sessionId) => authRepository.findSessionById(sessionId);
+
+export const listActiveSessions = (userId) =>
+  authRepository.findActiveSessionsByUserId(userId);
+
+/** "Logout everywhere": every session and refresh token for the user, not just one. */
+export const endAllSessions = (userId) =>
+  authRepository.deactivateAllUserSessionsAndTokens(userId);

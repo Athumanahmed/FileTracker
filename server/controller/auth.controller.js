@@ -74,11 +74,70 @@ export const refresh = asyncHandler(async (req, res) => {
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  const { id: userId, sessionId } = req.user;
+  const { userId, sessionId } = req.user;
 
   await authService.logout({ sessionId, userId, ipAddress: req.ip });
 
   clearAuthCookies(res);
 
   res.status(200).json({ success: true, message: "Logged out successfully" });
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await authService.getCurrentUser(req.user.userId);
+
+  res.status(200).json({
+    success: true,
+    message: "User profile retrieved successfully.",
+    data: user,
+  });
+});
+
+export const forceChangePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  await authService.forceChangePassword({
+    userId: req.user.userId,
+    currentPassword,
+    newPassword,
+    ipAddress: req.ip,
+  });
+
+  // Deliberately no new tokens -- the frontend clears everything and
+  // sends the user back through a normal login with the new password.
+  res.status(200).json({
+    success: true,
+    message: "Password updated successfully. Please sign in again.",
+  });
+});
+
+export const listSessions = asyncHandler(async (req, res) => {
+  const { userId, sessionId } = req.user;
+
+  const sessions = await authService.listSessions({ userId, currentSessionId: sessionId });
+
+  res.status(200).json({
+    success: true,
+    message: "Active sessions retrieved successfully.",
+    data: sessions,
+  });
+});
+
+export const revokeSession = asyncHandler(async (req, res) => {
+  const { userId } = req.user;
+  const { sessionId } = req.params;
+
+  await authService.revokeSession({ userId, sessionId, ipAddress: req.ip });
+
+  res.status(200).json({ success: true, message: "Session revoked successfully." });
+});
+
+export const logoutAll = asyncHandler(async (req, res) => {
+  const { userId } = req.user;
+
+  await authService.logoutAll({ userId, ipAddress: req.ip });
+
+  clearAuthCookies(res);
+
+  res.status(200).json({ success: true, message: "Logged out of all devices successfully." });
 });

@@ -11,6 +11,10 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.isOperational = true;
     this.errors = options.errors || null;
+    // Machine-readable discriminator for cases where the client needs to
+    // branch on failure reason (e.g. "PASSWORD_CHANGE_REQUIRED") without
+    // parsing the human-readable `message`.
+    this.code = options.code || null;
     Error.captureStackTrace(this, this.constructor);
   }
 }
