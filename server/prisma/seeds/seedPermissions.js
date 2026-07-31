@@ -29,6 +29,16 @@ export async function seedPermissions() {
       module: "USERS",
     },
 
+    // User account management -- deliberately separate from USERS.UPDATE,
+    // each one gates a distinct, independently-audited administrative action.
+    { code: "USERS.ACTIVATE", name: "Activate User Account", module: "USERS" },
+    { code: "USERS.DEACTIVATE", name: "Deactivate User Account", module: "USERS" },
+    { code: "USERS.LOCK", name: "Lock User Account", module: "USERS" },
+    { code: "USERS.UNLOCK", name: "Unlock User Account", module: "USERS" },
+    { code: "USERS.RESET_PASSWORD", name: "Reset User Password", module: "USERS" },
+    { code: "USERS.ROLES.ASSIGN", name: "Assign Role To User", module: "USERS" },
+    { code: "USERS.ROLES.REMOVE", name: "Remove Role From User", module: "USERS" },
+
     // Roles
     { code: "ROLES.CREATE", name: "Create Role", module: "AUTHORIZATION" },
     { code: "ROLES.READ", name: "View Roles", module: "AUTHORIZATION" },

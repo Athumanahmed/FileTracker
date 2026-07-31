@@ -1,9 +1,11 @@
 import prisma from "../config/prisma.js";
+import { revokeAllSessionsAndTokens } from "./password.repository.js";
 
 /**
  * Data-access layer for the (future, general) Users module. Distinct from
  * auth.repository.js, which is scoped to the auth/session/password domain
- * -- this one owns account provisioning.
+ * -- this one owns account provisioning, profile/admin updates, and
+ * account-management actions.
  */
 
 export const findRoleByCode = (code) => prisma.role.findUnique({ where: { code } });
@@ -36,3 +38,68 @@ export const createUserWithRole = ({ userData, roleId }) =>
     await tx.userRole.create({ data: { userId: user.id, roleId } });
     return user;
   });
+
+// ---------------------------------------------------------------------------
+// Profile / Admin update
+// ---------------------------------------------------------------------------
+
+export const findById = (id) => prisma.user.findUnique({ where: { id } });
+
+/** Plain field update -- no session/status side effects. Used by both self-profile and admin update. */
+export const update = (id, data) => prisma.user.update({ where: { id }, data });
+
+// ---------------------------------------------------------------------------
+// Account status management
+// ---------------------------------------------------------------------------
+
+/**
+ * Deactivation also kills every live session/refresh token -- a
+ * deactivated account shouldn't stay logged in on a device it was already
+ * signed into. Atomic so a failure mid-way never leaves isActive:false
+ * with sessions still alive, or vice versa.
+ */
+export const deactivateWithSessionRevocation = (userId, updatedById) =>
+  prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: userId },
+      data: { isActive: false, updatedById },
+    });
+    await revokeAllSessionsAndTokens(tx, userId);
+    return user;
+  });
+
+export const activate = (userId, updatedById) =>
+  prisma.user.update({ where: { id: userId }, data: { isActive: true, updatedById } });
+
+/** Same reasoning as deactivate -- a freshly-locked account shouldn't keep an existing session alive. */
+export const lockWithSessionRevocation = (userId, updatedById) =>
+  prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: userId },
+      data: { status: "LOCKED", updatedById },
+    });
+    await revokeAllSessionsAndTokens(tx, userId);
+    return user;
+  });
+
+/** Clears both lock mechanisms at once -- the admin-set status AND any lingering brute-force lockedUntil/failedLoginAttempts. */
+export const unlock = (userId, updatedById) =>
+  prisma.user.update({
+    where: { id: userId },
+    data: { status: "ACTIVE", lockedUntil: null, failedLoginAttempts: 0, updatedById },
+  });
+
+// ---------------------------------------------------------------------------
+// Role assignment
+// ---------------------------------------------------------------------------
+
+export const findUserRole = (userId, roleId) =>
+  prisma.userRole.findUnique({ where: { userId_roleId: { userId, roleId } } });
+
+export const countActiveRolesForUser = (userId) =>
+  prisma.userRole.count({ where: { userId, role: { isActive: true } } });
+
+export const assignRole = (userId, roleId) => prisma.userRole.create({ data: { userId, roleId } });
+
+export const removeRole = (userId, roleId) =>
+  prisma.userRole.delete({ where: { userId_roleId: { userId, roleId } } });

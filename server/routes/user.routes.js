@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createUserHandler } from "../controller/user.controller.js";
+import * as userProfileController from "../controller/userProfile.controller.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
 import { validateRequest } from "../middlewares/validation.js";
@@ -9,8 +10,20 @@ import {
   createSupervisorValidationRules,
   createOfficerValidationRules,
 } from "../validators/user.validation.js";
+import { updateOwnProfileValidationRules } from "../validators/userProfile.validation.js";
 
 const router = Router();
+
+// Self-service -- any authenticated user updating their own record.
+// No authorize() call: everyone is allowed to edit their own profile,
+// the allowlist itself (see userProfile.service.js) is the real guard.
+router.put(
+  "/profile",
+  authenticate,
+  updateOwnProfileValidationRules,
+  validateRequest,
+  userProfileController.updateOwnProfile,
+);
 
 // -- Super Administrator (global scope) --------------------------------
 

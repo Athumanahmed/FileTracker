@@ -1,25 +1,54 @@
 import prisma from "../../config/prisma.js";
 
 /**
- * These two permissions let a Super Administrator create ANOTHER Super
- * Administrator, or create a Department Officer directly (bypassing the
- * Unit Supervisor). Per the organizational hierarchy design, both are
- * escalation-risk overrides that must be opt-in, never granted by
- * default -- so SYSTEM_ADMIN's blanket grant below deliberately skips them.
- * Grant them explicitly later (via a role-management UI) only if the
- * business genuinely needs the override.
+ * Permissions SYSTEM_ADMIN must NOT receive from the blanket grant below.
+ * Two different reasons land a permission on this list:
+ *
+ *  - USERS.CREATE.SUPER_ADMIN / USERS.CREATE.OFFICER: escalation-risk
+ *    overrides that config/organizationalHierarchy.js's ROLE_CREATION_MATRIX
+ *    *does* list as valid for SYSTEM_ADMIN, but which must stay opt-in --
+ *    grant explicitly later (via a role-management UI) only if the
+ *    business genuinely needs the override.
+ *
+ *  - USERS.CREATE.SUPERVISOR: NOT an override at all. The matrix only
+ *    ever lists HOD as allowed to create a SUPERVISOR (department-scoped,
+ *    no admin bypass exists for this one). Granting the permission bit to
+ *    SYSTEM_ADMIN here would be pointless and misleading -- authorize()
+ *    would let the request through, then the service's independent
+ *    ROLE_CREATION_MATRIX check would still reject it, producing a
+ *    confusing 403 despite /me listing the permission as held.
  */
-const ESCALATION_ONLY_PERMISSIONS = ["USERS.CREATE.SUPER_ADMIN", "USERS.CREATE.OFFICER"];
+const NEVER_GRANT_TO_SYSTEM_ADMIN = [
+  "USERS.CREATE.SUPER_ADMIN",
+  "USERS.CREATE.OFFICER",
+  "USERS.CREATE.SUPERVISOR",
+];
 
 /**
  * Permissions granted to non-SYSTEM_ADMIN roles, keyed by role code.
  * This is where the "who can create whom" hierarchy actually gets wired
  * into the database -- see config/organizationalHierarchy.js for the
- * matrix this mirrors.
+ * matrix this mirrors. Account-management permissions (activate/
+ * deactivate/lock/unlock/reset-password/assign-role/remove-role) are
+ * granted alongside the creation permission for the same reason: an HOD
+ * administers their own department's people end-to-end, not just at
+ * creation time; a Supervisor the same for their own unit. The actual
+ * "which specific user can this actor touch" containment check happens
+ * at request time (userScope.service.js's assertTargetWithinScope), not here.
  */
+const ACCOUNT_MANAGEMENT_PERMISSIONS = [
+  "USERS.ACTIVATE",
+  "USERS.DEACTIVATE",
+  "USERS.LOCK",
+  "USERS.UNLOCK",
+  "USERS.RESET_PASSWORD",
+  "USERS.ROLES.ASSIGN",
+  "USERS.ROLES.REMOVE",
+];
+
 const EXPLICIT_ROLE_PERMISSIONS = {
-  HOD: ["USERS.CREATE.SUPERVISOR"],
-  SUPERVISOR: ["USERS.CREATE.OFFICER"],
+  HOD: ["USERS.CREATE.SUPERVISOR", ...ACCOUNT_MANAGEMENT_PERMISSIONS],
+  SUPERVISOR: ["USERS.CREATE.OFFICER", ...ACCOUNT_MANAGEMENT_PERMISSIONS],
 };
 
 export async function seedRolePermissions() {
@@ -39,7 +68,7 @@ export async function seedRolePermissions() {
   const systemAdmin = roles.find((role) => role.code === "SYSTEM_ADMIN");
   if (systemAdmin) {
     for (const permission of permissions) {
-      if (ESCALATION_ONLY_PERMISSIONS.includes(permission.code)) continue;
+      if (NEVER_GRANT_TO_SYSTEM_ADMIN.includes(permission.code)) continue;
       await grant(systemAdmin.id, permission.id);
     }
   }
