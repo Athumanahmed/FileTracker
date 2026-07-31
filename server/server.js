@@ -7,6 +7,13 @@ import "dotenv/config";
 
 import authRoutes from "./routes/auth.routes.js";
 import forgotPasswordRoutes from "./routes/forgotPassword.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import departmentRoutes from "./routes/department.routes.js";
+import unitRoutes from "./routes/unit.routes.js";
+import positionRoutes from "./routes/position.routes.js";
+import permissionRoutes from "./routes/permission.routes.js";
+import roleRoutes from "./routes/role.routes.js";
+import rolePermissionRoutes from "./routes/rolePermission.routes.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
 
@@ -44,6 +51,13 @@ app.get("/ip", (req, res) => {
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/auth", forgotPasswordRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/departments", departmentRoutes);
+app.use("/api/v1/units", unitRoutes);
+app.use("/api/v1/positions", positionRoutes);
+app.use("/api/v1/permissions", permissionRoutes);
+app.use("/api/v1/roles", roleRoutes);
+app.use("/api/v1/role-permissions", rolePermissionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

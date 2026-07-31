@@ -39,6 +39,11 @@ export async function seedRoles() {
       code: "ARCHIVE",
       isSystem: true,
     },
+    {
+      name: "ICT Administrator",
+      code: "ICT_ADMIN",
+      isSystem: true,
+    },
   ];
 
   for (const role of roles) {

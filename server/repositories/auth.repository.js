@@ -88,6 +88,7 @@ export const findAuthenticatedUser = (userId) =>
               name: true,
               code: true,
               permissions: {
+                where: { permission: { isActive: true } },
                 select: {
                   permission: {
                     select: { code: true },
@@ -211,7 +212,7 @@ export const userHasPermission = async (userId, permissionCode) => {
       role: {
         isActive: true,
         permissions: {
-          some: { permission: { code: permissionCode } },
+          some: { permission: { code: permissionCode, isActive: true } },
         },
       },
     },

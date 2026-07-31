@@ -114,6 +114,11 @@ model Permission {
   module      SystemModule
   description String?
 
+  // Deactivation acts as a system-wide kill switch: userHasPermission()
+  // requires isActive:true, so disabling a permission here revokes it
+  // everywhere immediately without touching any RolePermission row.
+  isActive Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -256,6 +261,11 @@ model AuditLog {
 
   description String?
 
+  // Structured { before, after } snapshot of the changed record, for
+  // administrative CRUD actions where "what actually changed" matters.
+  // Left null by flows that don't have a meaningful before/after (login, etc).
+  metadata Json?
+
   ipAddress String?
 
   createdAt DateTime @default(now())
@@ -376,6 +386,7 @@ enum SystemModule {
   AUTHORIZATION
   USERS
   DEPARTMENTS
+  UNITS
   POSITIONS
   FILE_TRACKING
   WORKFLOW
