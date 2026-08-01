@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, Globe, LogIn, Menu, X } from "lucide-react";
+import { ChevronDown, Globe, LayoutDashboard, LogIn, Menu, X } from "lucide-react";
 import { imageAssets } from "../../assets/assets";
 import useAuthStore from "../../store/authStore";
 import UserMenu from "../shared/UserMenu";
@@ -72,7 +72,16 @@ const Navbar = () => {
           {loadingUser ? (
             <span className="h-9 w-9 animate-pulse rounded-full bg-white/15" />
           ) : user ? (
-            <UserMenu />
+            <>
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-1.5 rounded-full border border-white/30 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+              >
+                <LayoutDashboard size={15} />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+              <UserMenu />
+            </>
           ) : (
             <Link
               to="/login"

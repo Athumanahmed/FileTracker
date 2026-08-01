@@ -1,14 +1,5 @@
 import apiClient from "./apiClient";
-
-/**
- * Single source of truth for every backend endpoint this frontend calls.
- * Components/hooks/store actions import these functions and never call
- * apiClient directly or hardcode a URL -- if a route ever moves, this file
- * is the only place that changes.
- *
- * Every function returns the raw axios response (not pre-unwrapped) --
- * callers destructure `.data` themselves, consistently across the app.
- */
+import { API_ENDPOINTS } from "./apiEndpoints";
 
 // Must match server/config/security.js's CSRF_COOKIE_NAME.
 const CSRF_COOKIE_NAME = "eftms_csrf_token";
@@ -18,43 +9,50 @@ const getCookie = (name) => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
-const authHeader = (accessToken) => ({
-  headers: { Authorization: `Bearer ${accessToken}` },
+const authHeader = (token) => ({
+  headers: { Authorization: `Bearer ${token}` },
 });
 
-// -- Auth -----------------------------------------------------------------
-
 export const loginUser = ({ username, password }) =>
-  apiClient.post("/api/v1/auth/login", { username, password });
+  apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { username, password });
 
-/**
- * Relies on the httpOnly refresh-token cookie the backend set at login --
- * there's nothing to pass in except the CSRF token, which (being
- * deliberately NOT httpOnly) has to be read from the cookie and echoed
- * back as a header for the backend's double-submit check to pass.
- */
 export const refreshAccessToken = () =>
   apiClient.post(
-    "/api/v1/auth/refresh",
+    API_ENDPOINTS.AUTH.REFRESH_TOKEN,
     {},
     { headers: { "x-csrf-token": getCookie(CSRF_COOKIE_NAME) } },
   );
 
 export const logoutUser = (accessToken) =>
-  apiClient.post("/api/v1/auth/logout", {}, authHeader(accessToken));
+  apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {}, authHeader(accessToken));
 
-export const getUserProfile = (accessToken) => apiClient.get("/api/v1/auth/me", authHeader(accessToken));
+export const getUserProfile = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.AUTH.ME, authHeader(accessToken));
 
-/**
- * Also the endpoint used for a mandatory first-login password change
- * (mustChangePassword: true) -- same handler on the backend either way.
- * Never returns new tokens; the backend revokes every session on success,
- * so the frontend must clear its own auth state and send the user back
- * through a fresh login.
- */
-export const forceChangePassword = ({ accessToken, currentPassword, newPassword, confirmPassword }) =>
+export const forceChangePassword = ({
+  accessToken,
+  currentPassword,
+  newPassword,
+  confirmPassword,
+}) =>
   apiClient.post(
-    "/api/v1/auth/force-change-password",
+    API_ENDPOINTS.AUTH.FORCE_CHANGE_PASSWORD,
     { currentPassword, newPassword, confirmPassword },
     authHeader(accessToken),
+  );
+
+export const forgotPassword = ({ phoneNumber }) =>
+  apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { phoneNumber });
+
+export const resendResetOtp = ({ phoneNumber }) =>
+  apiClient.post(API_ENDPOINTS.AUTH.RESEND_RESET_OTP, { phoneNumber });
+
+export const verifyResetOtp = ({ phoneNumber, otp }) =>
+  apiClient.post(API_ENDPOINTS.AUTH.VERIFY_RESET_OTP, { phoneNumber, otp });
+
+export const resetPassword = ({ resetToken, newPassword, confirmPassword }) =>
+  apiClient.post(
+    API_ENDPOINTS.AUTH.RESET_PASSWORD,
+    { newPassword, confirmPassword },
+    authHeader(resetToken),
   );

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,14 +16,15 @@ import {
   Circle,
 } from "lucide-react";
 import PasswordField from "../components/shared/PasswordField";
-import { useForceChangePassword } from "../hooks/useForceChangePassword";
-import useAuthStore from "../store/authStore";
+import { useResetPassword } from "../hooks/useResetPassword";
+import {
+  PASSWORD_REQUIREMENTS,
+  getPasswordStrength,
+} from "../utils/passwordRequirements";
 import { imageAssets } from "../assets/assets";
-import { PASSWORD_REQUIREMENTS, getPasswordStrength } from "../utils/passwordRequirements";
 
-const changePasswordSchema = z
+const resetPasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
     newPassword: z.string().min(1, "New password is required"),
     confirmPassword: z.string().min(1, "Please confirm your new password"),
   })
@@ -36,13 +37,6 @@ const changePasswordSchema = z
         code: z.ZodIssueCode.custom,
         path: ["newPassword"],
         message: failed.label,
-      });
-    }
-    if (values.newPassword && values.newPassword === values.currentPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["newPassword"],
-        message: "New password must be different from your current password",
       });
     }
     if (
@@ -80,13 +74,11 @@ const FEATURES = [
   },
 ];
 
-const ChangePassword = () => {
+const ResetPassword = () => {
   const navigate = useNavigate();
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const loadingUser = useAuthStore((state) => state.loadingUser);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
-  const logout = useAuthStore((state) => state.logout);
-  const { mutate: changePassword, isPending } = useForceChangePassword();
+  const { state } = useLocation();
+  const resetToken = state?.resetToken;
+  const { mutate: resetPassword, isPending } = useResetPassword();
 
   const {
     control,
@@ -94,45 +86,39 @@ const ChangePassword = () => {
     watch,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
   });
 
   const newPasswordValue = watch("newPassword");
   const strength = getPasswordStrength(newPasswordValue);
 
   useEffect(() => {
-    if (!loadingUser && !accessToken) {
-      navigate("/login", { replace: true });
+    if (!resetToken) {
+      navigate("/forgot-password", { replace: true });
     }
-  }, [loadingUser, accessToken, navigate]);
+  }, [resetToken, navigate]);
 
-  const onSubmit = ({ currentPassword, newPassword, confirmPassword }) => {
-    changePassword(
-      { accessToken, currentPassword, newPassword, confirmPassword },
+  if (!resetToken) return null;
+
+  const onSubmit = ({ newPassword, confirmPassword }) => {
+    resetPassword(
+      { resetToken, newPassword, confirmPassword },
       {
         onSuccess: (data) => {
-          clearAuth();
-          toast.success(data.message || "Password updated successfully.");
+          toast.success(
+            data.message || "Password reset successfully. Please sign in.",
+          );
           navigate("/login", { replace: true });
         },
         onError: (error) => {
           const message =
             error?.response?.data?.message ||
-            "Unable to update password. Please try again.";
+            "Unable to reset password. Please try again.";
           toast.error(message);
         },
       },
     );
-  };
-
-  const handleCancel = async () => {
-    await logout();
-    navigate("/login", { replace: true });
   };
 
   return (
@@ -182,28 +168,18 @@ const ChangePassword = () => {
           </div>
         </div>
         <h2 className="text-center text-2xl font-bold text-gray-900">
-          Change Password
+          Reset Password
         </h2>
         <p className="mx-auto mt-1 mb-8 max-w-xs text-center text-sm text-gray-500">
-          For your security, please choose a strong new password that you
-          don&apos;t use elsewhere.
+          Your code has been verified. Choose a strong new password for your
+          account.
         </p>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="mx-auto w-full max-w-sm space-y-5 "
+          className="mx-auto w-full max-w-sm space-y-5"
         >
-          <PasswordField
-            name="currentPassword"
-            label="Current Password"
-            control={control}
-            error={errors.currentPassword?.message}
-            placeholder="Enter your current password"
-            disabled={isPending}
-            autoComplete="current-password"
-          />
-
           <div>
             <PasswordField
               name="newPassword"
@@ -263,7 +239,7 @@ const ChangePassword = () => {
           <div className="flex gap-3 pt-1">
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={() => navigate("/login")}
               disabled={isPending}
               className="flex flex-1 items-center justify-center gap-1.5 rounded border border-gray-300 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -280,7 +256,7 @@ const ChangePassword = () => {
               ) : (
                 <LockKeyhole size={16} />
               )}
-              Update Password
+              Reset Password
             </button>
           </div>
         </form>
@@ -289,4 +265,4 @@ const ChangePassword = () => {
   );
 };
 
-export default ChangePassword;
+export default ResetPassword;
