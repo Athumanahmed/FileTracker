@@ -23,6 +23,10 @@ router.get(
   adminUserQueryController.listUsers,
 );
 
+// Must be registered before /:userId -- otherwise Express would match
+// "stats" as a userId value and this route would never be reached.
+router.get("/stats", authenticate, authorize("USERS.READ"), adminUserQueryController.getUserStats);
+
 router.get("/:userId", authenticate, authorize("USERS.READ"), adminUserQueryController.getUserById);
 
 // -- Administrative update: department/unit/position/contact info -------

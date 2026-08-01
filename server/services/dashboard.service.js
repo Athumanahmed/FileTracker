@@ -1,33 +1,5 @@
 import * as dashboardRepository from "../repositories/dashboard.repository.js";
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * "Grew by X% from last week" -- computed from createdAt only (no historical
- * snapshot table exists), so it reflects growth, not net change: a module
- * that also loses records (e.g. soft-deleted users) would still show 0%
- * rather than negative. That matches every entity here well enough --
- * organizational structure and the user roster both grow far more often
- * than they shrink -- without claiming precision the data can't back up.
- */
-const withWeeklyTrend = async (countFn, baseWhere) => {
-  const since = new Date(Date.now() - SEVEN_DAYS_MS);
-
-  const [total, createdThisWeek] = await Promise.all([
-    countFn(baseWhere),
-    countFn({ ...baseWhere, createdAt: { gte: since } }),
-  ]);
-
-  const totalBeforeThisWeek = total - createdThisWeek;
-  const changePercent =
-    totalBeforeThisWeek > 0
-      ? Math.round((createdThisWeek / totalBeforeThisWeek) * 100)
-      : createdThisWeek > 0
-        ? 100
-        : 0;
-
-  return { total, changePercent };
-};
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 
 export const getAdminSummary = async () => {
   const activeUserWhere = { deletedAt: null };

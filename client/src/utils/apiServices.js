@@ -65,6 +65,20 @@ export const getAdminUsers = (accessToken, params = {}) =>
 export const getAdminUserById = (accessToken, userId) =>
   apiClient.get(API_ENDPOINTS.USERS.ADMIN_DETAIL(userId), authHeader(accessToken));
 
+export const getAdminUserStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.USERS.ADMIN_STATS, authHeader(accessToken));
+
+// -- Organizational lookups (for filter dropdowns etc.) ----------------------
+
+export const getDepartments = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.DEPARTMENTS.LIST, { ...authHeader(accessToken), params });
+
+export const getUnits = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.UNITS.LIST, { ...authHeader(accessToken), params });
+
+export const getRoles = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.ROLES.LIST, { ...authHeader(accessToken), params });
+
 // -- Dashboard ---------------------------------------------------------------
 
 export const getAdminDashboardSummary = (accessToken) =>

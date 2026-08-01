@@ -118,6 +118,7 @@ const USER_SUMMARY_SELECT = {
   email: true,
   phoneNumber: true,
   profileImage: true,
+  employeeNumber: true,
   status: true,
   isActive: true,
   mustChangePassword: true,

@@ -12,3 +12,9 @@ export const getUserById = asyncHandler(async (req, res) => {
 
   res.status(200).json({ success: true, message: "User retrieved successfully.", data: user });
 });
+
+export const getUserStats = asyncHandler(async (req, res) => {
+  const stats = await adminUserQueryService.getUserStatsForAdmin();
+
+  res.status(200).json({ success: true, message: "User statistics retrieved successfully.", data: stats });
+});

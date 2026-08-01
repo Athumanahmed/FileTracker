@@ -14,11 +14,24 @@ export const API_ENDPOINTS = {
 
   USERS: {
     ADMIN_LIST: "/api/v1/admin/users",
+    ADMIN_STATS: "/api/v1/admin/users/stats",
     ADMIN_DETAIL: (userId) => `/api/v1/admin/users/${userId}`,
   },
 
   DASHBOARD: {
     ADMIN_SUMMARY: "/api/v1/dashboard/admin/summary",
     ADMIN_RECENT_ACTIVITY: "/api/v1/dashboard/admin/recent-activity",
+  },
+
+  DEPARTMENTS: {
+    LIST: "/api/v1/departments",
+  },
+
+  UNITS: {
+    LIST: "/api/v1/units",
+  },
+
+  ROLES: {
+    LIST: "/api/v1/roles",
   },
 };

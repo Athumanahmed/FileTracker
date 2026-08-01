@@ -28,9 +28,14 @@ const Skeleton = () => (
 /**
  * The one stats card every dashboard/list page reaches for -- single
  * source of truth for this look, so a styling change never has to be
- * repeated across pages. `change` is a week-over-week growth percent (see
- * server/services/dashboard.service.js); omit it entirely for a metric
- * with no trend to show.
+ * repeated across pages. Two independent, mutually exclusive ways to
+ * annotate the value (pass at most one):
+ *  - `change`: a week-over-week growth percent (see
+ *    server/services/dashboard.service.js) -- renders as "+X% from last
+ *    week" / "No change".
+ *  - `helperText`: any other annotation the caller already computed (e.g.
+ *    "128 (90.1%) of total") -- rendered as plain muted text, no arrow icon.
+ * Omit both for a metric with nothing to annotate.
  */
 const StatCard = ({
   icon: Icon,
@@ -38,6 +43,7 @@ const StatCard = ({
   label,
   value,
   change, // number (%) or undefined -- growth-only, never negative (see backend)
+  helperText,
   to,
   loading = false,
   className = "",
@@ -49,13 +55,15 @@ const StatCard = ({
       <div className="min-w-0">
         <p className="text-sm text-gray-500 truncate">{label}</p>
         <p className="text-2xl font-bold text-gray-900 mt-1">{formatValue(value)}</p>
-        {change !== undefined && change !== null && (
+        {change !== undefined && change !== null ? (
           <p
             className={`flex items-center gap-1 text-xs mt-2 ${change === 0 ? "text-gray-400" : "text-green-600"}`}
           >
             {change === 0 ? <Minus size={12} /> : <ArrowUp size={12} />}
             {change === 0 ? "No change" : `${change}% from last week`}
           </p>
+        ) : (
+          helperText && <p className="text-xs text-gray-400 mt-2">{helperText}</p>
         )}
       </div>
       {Icon && (

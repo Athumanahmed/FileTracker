@@ -18,6 +18,8 @@ import PlaceholderPage from "./PlaceholderPage";
 import { ROLES } from "../../utils/roles";
 import { PERMISSIONS } from "../../utils/permissions";
 import AdminDashboard from "../../pages/admin/AdminDashboard";
+import SystemUsers from "../../pages/admin/SystemUsers";
+import CreateUser from "../../pages/admin/CreateUser";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -86,10 +88,16 @@ const AppRoutes = (
           path="users"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_READ}>
-              <PlaceholderPage
-                title="Users"
-                description="User management is coming soon."
-              />
+              <SystemUsers />
+            </RoleBasedRoute>
+          }
+        />
+
+        <Route
+          path="create-users"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_READ}>
+              <CreateUser />
             </RoleBasedRoute>
           }
         />

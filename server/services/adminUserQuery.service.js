@@ -6,6 +6,7 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as userRepository from "../repositories/user.repository.js";
 
 const SORTABLE_FIELDS = ["fullName", "username", "email", "createdAt", "lastLoginAt"];
@@ -22,6 +23,7 @@ const sanitizeSummary = (user) => ({
   email: user.email,
   phoneNumber: user.phoneNumber,
   profileImage: user.profileImage,
+  employeeNumber: user.employeeNumber,
   status: user.status,
   isActive: user.isActive,
   mustChangePassword: user.mustChangePassword,
@@ -50,7 +52,6 @@ const sanitizeDetail = (user) => ({
   gender: user.gender,
   dateOfBirth: user.dateOfBirth,
   nationalId: user.nationalId,
-  employeeNumber: user.employeeNumber,
   authenticationMethod: user.authenticationMethod,
   emailVerifiedAt: user.emailVerifiedAt,
   phoneVerifiedAt: user.phoneVerifiedAt,
@@ -78,6 +79,8 @@ export const listUsersForAdmin = async ({ query }) => {
     ...(isActive !== undefined ? { isActive } : {}),
     ...(query.status ? { status: query.status } : {}),
     ...(query.departmentId ? { departmentId: query.departmentId } : {}),
+    ...(query.unitId ? { unitId: query.unitId } : {}),
+    ...(query.roleCode ? { roles: { some: { role: { code: query.roleCode } } } } : {}),
     ...buildSearchClause(query.search, SEARCHABLE_FIELDS),
   };
 
@@ -93,4 +96,31 @@ export const getUserByIdForAdmin = async (id) => {
   const user = await userRepository.findByIdForAdmin(id);
   if (!user) throw new AppError(404, "User not found");
   return sanitizeDetail(user);
+};
+
+/**
+ * Powers the Users directory's stat cards. `total` carries a real
+ * week-over-week growth percent (see trendCalculator.js); active/inactive/
+ * locked are point-in-time counts with their share of the total, not a
+ * trend -- there's no meaningful "grew 5%" framing for "currently locked."
+ */
+export const getUserStatsForAdmin = async () => {
+  const baseWhere = { deletedAt: null };
+
+  const [total, active, inactive, locked] = await Promise.all([
+    withWeeklyTrend(userRepository.countForAdmin, baseWhere),
+    userRepository.countForAdmin({ ...baseWhere, isActive: true, status: "ACTIVE" }),
+    userRepository.countForAdmin({ ...baseWhere, isActive: false }),
+    userRepository.countForAdmin({ ...baseWhere, status: "LOCKED" }),
+  ]);
+
+  const percentOf = (count) =>
+    total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0;
+
+  return {
+    total,
+    active: { count: active, percent: percentOf(active) },
+    inactive: { count: inactive, percent: percentOf(inactive) },
+    locked: { count: locked, percent: percentOf(locked) },
+  };
 };

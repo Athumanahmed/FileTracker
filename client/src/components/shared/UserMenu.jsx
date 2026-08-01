@@ -3,15 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useClickAway } from "react-use";
 import { ChevronDown, LogOut, User as UserIcon, Settings } from "lucide-react";
 import useAuthStore from "../../store/authStore";
-
-const getInitials = (name = "") =>
-  name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+import { getInitials } from "../../utils/formatters";
 
 /** Authenticated-state replacement for the Navbar's Login button -- renders nothing if no user is loaded. */
 const UserMenu = () => {

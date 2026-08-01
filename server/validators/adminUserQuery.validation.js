@@ -9,6 +9,8 @@ export const listUsersValidationRules = [
   query("isActive").optional().isIn(["true", "false"]),
   query("status").optional().isIn(USER_STATUSES),
   query("departmentId").optional().trim().notEmpty(),
+  query("unitId").optional().trim().notEmpty(),
+  query("roleCode").optional().trim().notEmpty(),
   query("sortBy").optional().isIn(["fullName", "username", "email", "createdAt", "lastLoginAt"]),
   query("sortOrder").optional().isIn(["asc", "desc"]),
 ];
