@@ -7,8 +7,10 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as departmentRepository from "../repositories/department.repository.js";
+import * as unitRepository from "../repositories/unit.repository.js";
 
 const SORTABLE_FIELDS = ["name", "code", "createdAt", "updatedAt"];
 const SEARCHABLE_FIELDS = ["name", "code"];
@@ -21,6 +23,13 @@ const sanitize = (department) => ({
   isActive: department.isActive,
   createdAt: department.createdAt,
   updatedAt: department.updatedAt,
+});
+
+/** Listing adds child counts on top of the base shape -- detail/create/update never include them. */
+const sanitizeListItem = (department) => ({
+  ...sanitize(department),
+  unitsCount: department._count?.units ?? 0,
+  usersCount: department._count?.users ?? 0,
 });
 
 /** Allowlisted snapshot for audit before/after -- keeps metadata small and stable. */
@@ -103,7 +112,33 @@ export const listDepartments = async ({ query }) => {
     departmentRepository.count(where),
   ]);
 
-  return { items: items.map(sanitize), meta: buildPaginationMeta(total, page, limit) };
+  return { items: items.map(sanitizeListItem), meta: buildPaginationMeta(total, page, limit) };
+};
+
+/**
+ * Powers the Departments directory's stat cards. `total` carries a real
+ * week-over-week growth percent (see trendCalculator.js); active/inactive
+ * are point-in-time counts with their share of the total. `units` is a
+ * plain org-wide count (departments don't "trend" by unit count the way
+ * they do by their own creation rate).
+ */
+export const getDepartmentStats = async () => {
+  const [total, active, inactive, unitsCount] = await Promise.all([
+    withWeeklyTrend(departmentRepository.count, {}),
+    departmentRepository.count({ isActive: true }),
+    departmentRepository.count({ isActive: false }),
+    unitRepository.count({}),
+  ]);
+
+  const percentOf = (count) =>
+    total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0;
+
+  return {
+    total,
+    active: { count: active, percent: percentOf(active) },
+    inactive: { count: inactive, percent: percentOf(inactive) },
+    units: { count: unitsCount },
+  };
 };
 
 export const updateDepartment = async ({ id, actorId, payload, ipAddress }) => {

@@ -29,6 +29,9 @@ router.get(
   departmentController.listDepartments,
 );
 
+// Registered before "/:id" -- otherwise Express would match "stats" as the :id param.
+router.get("/stats", authenticate, authorize("DEPARTMENTS.READ"), departmentController.getDepartmentStats);
+
 router.get("/:id", authenticate, authorize("DEPARTMENTS.READ"), departmentController.getDepartment);
 
 router.put(

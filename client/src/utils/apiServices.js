@@ -83,6 +83,12 @@ export const createIctAdmin = (accessToken, payload) =>
 export const getDepartments = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.DEPARTMENTS.LIST, { ...authHeader(accessToken), params });
 
+export const getDepartmentStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.DEPARTMENTS.STATS, authHeader(accessToken));
+
+export const createDepartment = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.DEPARTMENTS.CREATE, payload, authHeader(accessToken));
+
 export const getUnits = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.UNITS.LIST, { ...authHeader(accessToken), params });
 

@@ -28,6 +28,12 @@ export const listDepartments = asyncHandler(async (req, res) => {
   });
 });
 
+export const getDepartmentStats = asyncHandler(async (req, res) => {
+  const stats = await departmentService.getDepartmentStats();
+
+  res.status(200).json({ success: true, message: "Department statistics retrieved successfully.", data: stats });
+});
+
 export const updateDepartment = asyncHandler(async (req, res) => {
   const department = await departmentService.updateDepartment({
     id: req.params.id,

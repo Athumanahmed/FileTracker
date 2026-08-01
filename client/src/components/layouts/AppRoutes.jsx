@@ -20,6 +20,8 @@ import { PERMISSIONS } from "../../utils/permissions";
 import AdminDashboard from "../../pages/admin/AdminDashboard";
 import SystemUsers from "../../pages/admin/SystemUsers";
 import CreateUser from "../../pages/admin/CreateUser";
+import AllDepartments from "../../pages/admin/AllDepartments";
+import CreateDepartment from "../../pages/admin/CreateDepartment";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -105,10 +107,15 @@ const AppRoutes = (
           path="departments"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.DEPARTMENTS_READ}>
-              <PlaceholderPage
-                title="Departments"
-                description="Department management is coming soon."
-              />
+              <AllDepartments />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-department"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.DEPARTMENTS_CREATE}>
+              <CreateDepartment />
             </RoleBasedRoute>
           }
         />

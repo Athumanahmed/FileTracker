@@ -31,6 +31,8 @@ export const API_ENDPOINTS = {
 
   DEPARTMENTS: {
     LIST: "/api/v1/departments",
+    CREATE: "/api/v1/departments",
+    STATS: "/api/v1/departments/stats",
   },
 
   UNITS: {

@@ -72,7 +72,15 @@ export const sidebarRoutes = {
   [ROLES.DIRECTOR]: [
     { title: "Dashboard", icon: LayoutDashboard, path: "/director" },
   ],
-  [ROLES.HOD]: [{ title: "Dashboard", icon: LayoutDashboard, path: "/hod" }],
+  [ROLES.HOD]: [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/hod" },
+    {
+      title: "Users",
+      icon: Users,
+      path: "/admin/users",
+      permission: PERMISSIONS.USERS_READ,
+    },
+  ],
   [ROLES.REGISTRY]: [
     { title: "Dashboard", icon: LayoutDashboard, path: "/registry" },
   ],
