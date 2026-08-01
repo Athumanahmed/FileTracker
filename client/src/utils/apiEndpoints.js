@@ -12,5 +12,13 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: "/api/v1/auth/reset-password",
   },
 
-  USERS: {},
+  USERS: {
+    ADMIN_LIST: "/api/v1/admin/users",
+    ADMIN_DETAIL: (userId) => `/api/v1/admin/users/${userId}`,
+  },
+
+  DASHBOARD: {
+    ADMIN_SUMMARY: "/api/v1/dashboard/admin/summary",
+    ADMIN_RECENT_ACTIVITY: "/api/v1/dashboard/admin/recent-activity",
+  },
 };

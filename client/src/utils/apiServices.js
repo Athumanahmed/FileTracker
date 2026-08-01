@@ -56,3 +56,22 @@ export const resetPassword = ({ resetToken, newPassword, confirmPassword }) =>
     { newPassword, confirmPassword },
     authHeader(resetToken),
   );
+
+// -- Users (admin) ----------------------------------------------------------
+
+export const getAdminUsers = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.USERS.ADMIN_LIST, { ...authHeader(accessToken), params });
+
+export const getAdminUserById = (accessToken, userId) =>
+  apiClient.get(API_ENDPOINTS.USERS.ADMIN_DETAIL(userId), authHeader(accessToken));
+
+// -- Dashboard ---------------------------------------------------------------
+
+export const getAdminDashboardSummary = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN_SUMMARY, authHeader(accessToken));
+
+export const getAdminRecentActivity = (accessToken, limit = 10) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN_RECENT_ACTIVITY, {
+    ...authHeader(accessToken),
+    params: { limit },
+  });

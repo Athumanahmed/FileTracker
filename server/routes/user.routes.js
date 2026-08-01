@@ -14,9 +14,6 @@ import { updateOwnProfileValidationRules } from "../validators/userProfile.valid
 
 const router = Router();
 
-// Self-service -- any authenticated user updating their own record.
-// No authorize() call: everyone is allowed to edit their own profile,
-// the allowlist itself (see userProfile.service.js) is the real guard.
 router.put(
   "/profile",
   authenticate,
@@ -72,8 +69,7 @@ router.post(
   createUserHandler("ICT_ADMIN"),
 );
 
-// Off by default -- nobody holds USERS.CREATE.SUPER_ADMIN until it's
-// explicitly granted (see seedRolePermissions.js).
+
 router.post(
   "/super-admins",
   authenticate,
@@ -94,9 +90,6 @@ router.post(
   createUserHandler("SUPERVISOR"),
 );
 
-// -- Unit Supervisor (unit scope) ---------------------------------------
-// Also reachable by SYSTEM_ADMIN as a direct-creation override, but only
-// once USERS.CREATE.OFFICER is explicitly granted to that role too.
 
 router.post(
   "/officers",

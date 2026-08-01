@@ -7,6 +7,8 @@ import {
   ShieldCheck,
   KeyRound,
   Link2,
+  FileClock,
+  Settings,
 } from "lucide-react";
 import { ROLES } from "./roles";
 import { PERMISSIONS } from "./permissions";
@@ -63,6 +65,8 @@ export const sidebarRoutes = {
       path: "/admin/role-permissions",
       permission: PERMISSIONS.ROLE_PERMISSIONS_READ,
     },
+    { title: "Audit Logs", icon: FileClock, path: "/admin/audit-logs" },
+    { title: "System Settings", icon: Settings, path: "/admin/settings" },
   ],
 
   [ROLES.DIRECTOR]: [

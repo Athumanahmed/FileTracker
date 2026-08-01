@@ -15,6 +15,7 @@ import permissionRoutes from "./routes/permission.routes.js";
 import roleRoutes from "./routes/role.routes.js";
 import rolePermissionRoutes from "./routes/rolePermission.routes.js";
 import adminUserRoutes from "./routes/adminUser.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
 
@@ -60,6 +61,7 @@ app.use("/api/v1/permissions", permissionRoutes);
 app.use("/api/v1/roles", roleRoutes);
 app.use("/api/v1/role-permissions", rolePermissionRoutes);
 app.use("/api/v1/admin/users", adminUserRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

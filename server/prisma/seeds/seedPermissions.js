@@ -90,6 +90,14 @@ export async function seedPermissions() {
     { code: "POSITIONS.READ", name: "View Positions", module: "POSITIONS" },
     { code: "POSITIONS.UPDATE", name: "Update Position", module: "POSITIONS" },
     { code: "POSITIONS.DELETE", name: "Delete Position", module: "POSITIONS" },
+
+    // Dashboard -- aggregate views spanning multiple modules, so they get
+    // their own permission rather than piggybacking on any single module's.
+    {
+      code: "DASHBOARD.READ_ADMIN_SUMMARY",
+      name: "View Admin Dashboard Summary",
+      module: "DASHBOARD",
+    },
   ];
 
   for (const permission of permissions) {

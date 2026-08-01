@@ -103,3 +103,73 @@ export const assignRole = (userId, roleId) => prisma.userRole.create({ data: { u
 
 export const removeRole = (userId, roleId) =>
   prisma.userRole.delete({ where: { userId_roleId: { userId, roleId } } });
+
+// ---------------------------------------------------------------------------
+// Admin listing / detail -- global, unscoped view for the Users admin module.
+// ---------------------------------------------------------------------------
+
+/** Shared across the list and detail queries so both stay consistent as fields are added. */
+const USER_SUMMARY_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phoneNumber: true,
+  profileImage: true,
+  status: true,
+  isActive: true,
+  mustChangePassword: true,
+  lastLoginAt: true,
+  createdAt: true,
+  department: { select: { id: true, name: true, code: true } },
+  unit: { select: { id: true, name: true, code: true } },
+  position: { select: { id: true, title: true, code: true } },
+  roles: {
+    where: { role: { isActive: true } },
+    select: { role: { select: { id: true, name: true, code: true } } },
+  },
+};
+
+export const findManyForAdmin = ({ where, orderBy, skip, take }) =>
+  prisma.user.findMany({ where, orderBy, skip, take, select: USER_SUMMARY_SELECT });
+
+export const countForAdmin = (where) => prisma.user.count({ where });
+
+export const findByIdForAdmin = (id) =>
+  prisma.user.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      ...USER_SUMMARY_SELECT,
+      middleName: true,
+      gender: true,
+      dateOfBirth: true,
+      nationalId: true,
+      employeeNumber: true,
+      authenticationMethod: true,
+      emailVerifiedAt: true,
+      phoneVerifiedAt: true,
+      failedLoginAttempts: true,
+      lockedUntil: true,
+      updatedAt: true,
+      roles: {
+        where: { role: { isActive: true } },
+        select: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              permissions: {
+                where: { permission: { isActive: true } },
+                select: { permission: { select: { code: true } } },
+              },
+            },
+          },
+        },
+      },
+      createdBy: { select: { id: true, fullName: true, username: true } },
+      updatedBy: { select: { id: true, fullName: true, username: true } },
+    },
+  });

@@ -161,6 +161,27 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+        {/* No dedicated backend permission for these two yet -- the parent
+            SYSTEM_ADMIN role guard above is the only gate, same as the
+            admin index route. */}
+        <Route
+          path="audit-logs"
+          element={
+            <PlaceholderPage
+              title="Audit Logs"
+              description="The full activity log viewer is coming soon."
+            />
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <PlaceholderPage
+              title="System Settings"
+              description="System settings are coming soon."
+            />
+          }
+        />
       </Route>
 
       {/* Every other actor -- own top-level branch, structured one at a time. */}

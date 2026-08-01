@@ -392,4 +392,5 @@ enum SystemModule {
   WORKFLOW
   REPORTS
   SETTINGS
+  DASHBOARD
 }

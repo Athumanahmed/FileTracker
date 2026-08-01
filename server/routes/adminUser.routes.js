@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as adminUserUpdateController from "../controller/adminUserUpdate.controller.js";
+import * as adminUserQueryController from "../controller/adminUserQuery.controller.js";
 import * as userAccountStatusController from "../controller/userAccountStatus.controller.js";
 import * as userPasswordAdminController from "../controller/userPasswordAdmin.controller.js";
 import * as userRoleAssignmentController from "../controller/userRoleAssignment.controller.js";
@@ -8,8 +9,21 @@ import { authorize } from "../middlewares/authorize.js";
 import { validateRequest } from "../middlewares/validation.js";
 import { updateUserByAdminValidationRules } from "../validators/adminUserUpdate.validation.js";
 import { assignRoleValidationRules } from "../validators/userRoleAssignment.validation.js";
+import { listUsersValidationRules } from "../validators/adminUserQuery.validation.js";
 
 const router = Router();
+
+// -- Read: global, unscoped listing/detail for the Users admin module ----
+router.get(
+  "/",
+  authenticate,
+  authorize("USERS.READ"),
+  listUsersValidationRules,
+  validateRequest,
+  adminUserQueryController.listUsers,
+);
+
+router.get("/:userId", authenticate, authorize("USERS.READ"), adminUserQueryController.getUserById);
 
 // -- Administrative update: department/unit/position/contact info -------
 // Role assignment is deliberately NOT handled here -- see the dedicated
