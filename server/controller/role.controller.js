@@ -28,6 +28,12 @@ export const listRoles = asyncHandler(async (req, res) => {
   });
 });
 
+export const getRoleStats = asyncHandler(async (req, res) => {
+  const stats = await roleService.getRoleStats();
+
+  res.status(200).json({ success: true, message: "Role statistics retrieved successfully.", data: stats });
+});
+
 export const updateRole = asyncHandler(async (req, res) => {
   const role = await roleService.updateRole({
     id: req.params.id,

@@ -7,6 +7,7 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as roleRepository from "../repositories/role.repository.js";
 
@@ -22,6 +23,13 @@ const sanitize = (role) => ({
   isActive: role.isActive,
   createdAt: role.createdAt,
   updatedAt: role.updatedAt,
+});
+
+/** Listing adds active-assignee and permission counts on top of the base shape. */
+const sanitizeListItem = (role) => ({
+  ...sanitize(role),
+  usersCount: role._count?.users ?? 0,
+  permissionsCount: role._count?.permissions ?? 0,
 });
 
 /** Allowlisted snapshot for audit before/after -- keeps metadata small and stable. */
@@ -113,7 +121,34 @@ export const listRoles = async ({ query }) => {
     roleRepository.count(where),
   ]);
 
-  return { items: items.map(sanitize), meta: buildPaginationMeta(total, page, limit) };
+  return { items: items.map(sanitizeListItem), meta: buildPaginationMeta(total, page, limit) };
+};
+
+/**
+ * Powers the Roles directory's stat cards. `total` carries a real
+ * week-over-week growth percent; active/inactive are point-in-time shares
+ * of total. `system` is a plain count of built-in roles (SYSTEM_ADMIN,
+ * HOD, ...) -- they're always active by design (see deactivateRole), so
+ * "system" is the more informative 4th metric than any active/inactive
+ * split among them would be.
+ */
+export const getRoleStats = async () => {
+  const [total, active, inactive, system] = await Promise.all([
+    withWeeklyTrend(roleRepository.count, {}),
+    roleRepository.count({ isActive: true }),
+    roleRepository.count({ isActive: false }),
+    roleRepository.count({ isSystem: true }),
+  ]);
+
+  const percentOf = (count) =>
+    total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0;
+
+  return {
+    total,
+    active: { count: active, percent: percentOf(active) },
+    inactive: { count: inactive, percent: percentOf(inactive) },
+    system: { count: system },
+  };
 };
 
 /**

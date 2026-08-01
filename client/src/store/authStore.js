@@ -16,22 +16,37 @@ const useAuthStore = create((set, get) => ({
 
 
   fetchUserProfile: async () => {
+    // App.jsx fires this once on mount, unconditionally, to silently
+    // restore a session from the httpOnly refresh cookie -- with no
+    // accessToken yet, that's a slow round trip. If a user logs in (which
+    // sets a real token synchronously via setAuth) before this in-flight
+    // call resolves, its result is stale: every write below is guarded
+    // against the store's accessToken having moved on since `tokenAtStart`,
+    // so a late-arriving anonymous probe can never clobber a session a
+    // faster, more authoritative call already established.
+    const tokenAtStart = get().accessToken;
     set({ loadingUser: true });
     try {
-      let token = get().accessToken;
+      let token = tokenAtStart;
 
       if (!token) {
         const { data } = await refreshAccessToken();
         token = data.data.accessToken;
+
+        if (get().accessToken && get().accessToken !== tokenAtStart) {
+          return; // someone else already established a session while we waited
+        }
         set({ accessToken: token });
       }
 
       const { data } = await getUserProfile(token);
-      if (data.success) {
+      if (data.success && get().accessToken === token) {
         set({ user: data.data });
       }
     } catch {
-      set({ user: null, accessToken: null });
+      if (get().accessToken === tokenAtStart) {
+        set({ user: null, accessToken: null });
+      }
     } finally {
       set({ loadingUser: false });
     }

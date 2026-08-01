@@ -49,5 +49,7 @@ export const API_ENDPOINTS = {
 
   ROLES: {
     LIST: "/api/v1/roles",
+    CREATE: "/api/v1/roles",
+    STATS: "/api/v1/roles/stats",
   },
 };

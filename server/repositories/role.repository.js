@@ -14,8 +14,25 @@ export const update = (id, data) => prisma.role.update({ where: { id }, data });
 
 export const setActive = (id, isActive) => prisma.role.update({ where: { id }, data: { isActive } });
 
+// Listing includes counts, not full child rows -- the admin directory
+// table only ever needs "how many", never the UserRole/RolePermission rows
+// themselves. `users` is filtered to currently-active assignees, mirroring
+// deactivateIfNoActiveUsers' own definition of "active" below.
 export const findMany = ({ where, orderBy, skip, take }) =>
-  prisma.role.findMany({ where, orderBy, skip, take });
+  prisma.role.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      _count: {
+        select: {
+          users: { where: { user: { isActive: true, deletedAt: null } } },
+          permissions: true,
+        },
+      },
+    },
+  });
 
 export const count = (where) => prisma.role.count({ where });
 

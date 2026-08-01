@@ -29,6 +29,9 @@ router.get(
   roleController.listRoles,
 );
 
+// Registered before "/:id" -- otherwise Express would match "stats" as the :id param.
+router.get("/stats", authenticate, authorize("ROLES.READ"), roleController.getRoleStats);
+
 router.get("/:id", authenticate, authorize("ROLES.READ"), roleController.getRole);
 
 // code and isSystem are intentionally NOT accepted here -- both immutable
