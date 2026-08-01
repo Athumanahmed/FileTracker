@@ -58,6 +58,7 @@ export const listPositionsValidationRules = [
   query("search").optional().trim().isLength({ max: 100 }),
   query("isActive").optional().isIn(["true", "false"]),
   query("unitId").optional().trim(),
+  query("departmentId").optional().trim(),
   query("positionType").optional().isIn(POSITION_TYPES),
   query("sortBy").optional().isIn(["title", "code", "rank", "positionType", "createdAt", "updatedAt"]),
   query("sortOrder").optional().isIn(["asc", "desc"]),

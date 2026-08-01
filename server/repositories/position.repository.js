@@ -28,8 +28,25 @@ export const update = (id, data) => prisma.position.update({ where: { id }, data
 export const setActive = (id, isActive) =>
   prisma.position.update({ where: { id }, data: { isActive } });
 
+// Listing includes the parent unit + its department (for display) and the
+// count of currently active assignees (to derive vacant/filled), not full
+// child rows -- the admin directory table only ever needs "where" and "how
+// many", never the User rows themselves.
 export const findMany = ({ where, orderBy, skip, take }) =>
-  prisma.position.findMany({ where, orderBy, skip, take });
+  prisma.position.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      unit: {
+        select: { id: true, name: true, code: true, department: { select: { id: true, name: true, code: true } } },
+      },
+      _count: {
+        select: { users: { where: { isActive: true, deletedAt: null } } },
+      },
+    },
+  });
 
 export const count = (where) => prisma.position.count({ where });
 

@@ -29,6 +29,9 @@ router.get(
   positionController.listPositions,
 );
 
+// Registered before "/:id" -- otherwise Express would match "stats" as the :id param.
+router.get("/stats", authenticate, authorize("POSITIONS.READ"), positionController.getPositionStats);
+
 router.get("/:id", authenticate, authorize("POSITIONS.READ"), positionController.getPosition);
 
 // unitId is immutable after creation (a position can't be moved between

@@ -24,6 +24,8 @@ import AllDepartments from "../../pages/admin/AllDepartments";
 import CreateDepartment from "../../pages/admin/CreateDepartment";
 import AllUnits from "../../pages/admin/AllUnits";
 import CreateUnit from "../../pages/admin/CreateUnit";
+import AllPositions from "../../pages/admin/AllPositions";
+import CreatePosition from "../../pages/admin/CreatePosition";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -141,10 +143,15 @@ const AppRoutes = (
           path="positions"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.POSITIONS_READ}>
-              <PlaceholderPage
-                title="Positions"
-                description="Position management is coming soon."
-              />
+              <AllPositions />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-position"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.POSITIONS_CREATE}>
+              <CreatePosition />
             </RoleBasedRoute>
           }
         />

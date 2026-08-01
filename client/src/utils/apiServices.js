@@ -98,6 +98,15 @@ export const getUnitStats = (accessToken) =>
 export const createUnit = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.UNITS.CREATE, payload, authHeader(accessToken));
 
+export const getPositions = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.POSITIONS.LIST, { ...authHeader(accessToken), params });
+
+export const getPositionStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.POSITIONS.STATS, authHeader(accessToken));
+
+export const createPosition = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.POSITIONS.CREATE, payload, authHeader(accessToken));
+
 export const getRoles = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.ROLES.LIST, { ...authHeader(accessToken), params });
 

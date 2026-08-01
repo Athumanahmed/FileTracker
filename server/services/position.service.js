@@ -7,6 +7,7 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as positionRepository from "../repositories/position.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
@@ -27,6 +28,30 @@ const sanitize = (position) => ({
   createdAt: position.createdAt,
   updatedAt: position.updatedAt,
 });
+
+/**
+ * Listing adds the parent unit (with its department), an active-assignee
+ * count, and the derived vacant/filled flag on top of the base shape --
+ * detail/create/update never include them.
+ */
+const sanitizeListItem = (position) => {
+  const assignedUsersCount = position._count?.users ?? 0;
+  return {
+    ...sanitize(position),
+    unit: position.unit
+      ? {
+          id: position.unit.id,
+          name: position.unit.name,
+          code: position.unit.code,
+          department: position.unit.department
+            ? { id: position.unit.department.id, name: position.unit.department.name, code: position.unit.department.code }
+            : null,
+        }
+      : null,
+    assignedUsersCount,
+    isVacant: position.isActive && assignedUsersCount === 0,
+  };
+};
 
 /** Allowlisted snapshot for audit before/after -- keeps metadata small and stable. */
 const snapshot = (position) => ({
@@ -132,6 +157,9 @@ export const listPositions = async ({ query }) => {
   const where = {
     ...(isActive !== undefined ? { isActive } : {}),
     ...(query.unitId ? { unitId: query.unitId } : {}),
+    // Position has no departmentId of its own -- filtering "by department"
+    // reaches through its parent Unit via a nested relation filter.
+    ...(query.departmentId ? { unit: { departmentId: query.departmentId } } : {}),
     ...(query.positionType ? { positionType: query.positionType } : {}),
     ...buildSearchClause(query.search, SEARCHABLE_FIELDS),
   };
@@ -141,7 +169,34 @@ export const listPositions = async ({ query }) => {
     positionRepository.count(where),
   ]);
 
-  return { items: items.map(sanitize), meta: buildPaginationMeta(total, page, limit) };
+  return { items: items.map(sanitizeListItem), meta: buildPaginationMeta(total, page, limit) };
+};
+
+/**
+ * Powers the Positions directory's stat cards. `total` carries a real
+ * week-over-week growth percent; `active` is a point-in-time share of
+ * total. Vacant/filled partition the *active* set only -- a deactivated
+ * position is neither (it's a retired slot, not an open one), so both are
+ * expressed as a percent of active, not of total (mirrors how the numbers
+ * naturally sum: vacant + filled === active).
+ */
+export const getPositionStats = async () => {
+  const [total, active, vacant, filled] = await Promise.all([
+    withWeeklyTrend(positionRepository.count, {}),
+    positionRepository.count({ isActive: true }),
+    positionRepository.count({ isActive: true, users: { none: { isActive: true, deletedAt: null } } }),
+    positionRepository.count({ isActive: true, users: { some: { isActive: true, deletedAt: null } } }),
+  ]);
+
+  const percentOfTotal = (count) => (total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0);
+  const percentOfActive = (count) => (active > 0 ? Math.round((count / active) * 1000) / 10 : 0);
+
+  return {
+    total,
+    active: { count: active, percent: percentOfTotal(active) },
+    vacant: { count: vacant, percent: percentOfActive(vacant) },
+    filled: { count: filled, percent: percentOfActive(filled) },
+  };
 };
 
 /** unitId is immutable after creation -- same reasoning as Unit's departmentId. */

@@ -28,6 +28,12 @@ export const listPositions = asyncHandler(async (req, res) => {
   });
 });
 
+export const getPositionStats = asyncHandler(async (req, res) => {
+  const stats = await positionService.getPositionStats();
+
+  res.status(200).json({ success: true, message: "Position statistics retrieved successfully.", data: stats });
+});
+
 export const updatePosition = asyncHandler(async (req, res) => {
   const position = await positionService.updatePosition({
     id: req.params.id,

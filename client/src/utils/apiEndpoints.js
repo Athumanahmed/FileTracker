@@ -41,6 +41,12 @@ export const API_ENDPOINTS = {
     STATS: "/api/v1/units/stats",
   },
 
+  POSITIONS: {
+    LIST: "/api/v1/positions",
+    CREATE: "/api/v1/positions",
+    STATS: "/api/v1/positions/stats",
+  },
+
   ROLES: {
     LIST: "/api/v1/roles",
   },
