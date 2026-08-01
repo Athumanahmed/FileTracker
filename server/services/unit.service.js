@@ -7,9 +7,11 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as unitRepository from "../repositories/unit.repository.js";
 import * as organizationRepository from "../repositories/organization.repository.js";
+import * as positionRepository from "../repositories/position.repository.js";
 
 const SORTABLE_FIELDS = ["name", "code", "createdAt", "updatedAt"];
 const SEARCHABLE_FIELDS = ["name", "code"];
@@ -23,6 +25,14 @@ const sanitize = (unit) => ({
   isActive: unit.isActive,
   createdAt: unit.createdAt,
   updatedAt: unit.updatedAt,
+});
+
+/** Listing adds the parent department and child counts on top of the base shape. */
+const sanitizeListItem = (unit) => ({
+  ...sanitize(unit),
+  department: unit.department ? { id: unit.department.id, name: unit.department.name, code: unit.department.code } : null,
+  positionsCount: unit._count?.positions ?? 0,
+  usersCount: unit._count?.users ?? 0,
 });
 
 /** Allowlisted snapshot for audit before/after -- keeps metadata small and stable. */
@@ -111,7 +121,30 @@ export const listUnits = async ({ query }) => {
     unitRepository.count(where),
   ]);
 
-  return { items: items.map(sanitize), meta: buildPaginationMeta(total, page, limit) };
+  return { items: items.map(sanitizeListItem), meta: buildPaginationMeta(total, page, limit) };
+};
+
+/**
+ * Powers the Units directory's stat cards -- same shape/reasoning as
+ * department.service.js's getDepartmentStats one level up the hierarchy.
+ */
+export const getUnitStats = async () => {
+  const [total, active, inactive, positionsCount] = await Promise.all([
+    withWeeklyTrend(unitRepository.count, {}),
+    unitRepository.count({ isActive: true }),
+    unitRepository.count({ isActive: false }),
+    positionRepository.count({}),
+  ]);
+
+  const percentOf = (count) =>
+    total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0;
+
+  return {
+    total,
+    active: { count: active, percent: percentOf(active) },
+    inactive: { count: inactive, percent: percentOf(inactive) },
+    positions: { count: positionsCount },
+  };
 };
 
 /** departmentId is immutable after creation -- see routes/unit.routes.js for why. */

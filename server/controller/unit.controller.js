@@ -28,6 +28,12 @@ export const listUnits = asyncHandler(async (req, res) => {
   });
 });
 
+export const getUnitStats = asyncHandler(async (req, res) => {
+  const stats = await unitService.getUnitStats();
+
+  res.status(200).json({ success: true, message: "Unit statistics retrieved successfully.", data: stats });
+});
+
 export const updateUnit = asyncHandler(async (req, res) => {
   const unit = await unitService.updateUnit({
     id: req.params.id,

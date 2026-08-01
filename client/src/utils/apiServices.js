@@ -92,6 +92,12 @@ export const createDepartment = (accessToken, payload) =>
 export const getUnits = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.UNITS.LIST, { ...authHeader(accessToken), params });
 
+export const getUnitStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.UNITS.STATS, authHeader(accessToken));
+
+export const createUnit = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.UNITS.CREATE, payload, authHeader(accessToken));
+
 export const getRoles = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.ROLES.LIST, { ...authHeader(accessToken), params });
 

@@ -16,8 +16,22 @@ export const update = (id, data) => prisma.unit.update({ where: { id }, data });
 
 export const setActive = (id, isActive) => prisma.unit.update({ where: { id }, data: { isActive } });
 
+// Listing includes the parent department (name/code, for display) and child
+// counts, not full child rows -- the admin directory table only ever needs
+// "which department" and "how many", never the positions/users themselves.
 export const findMany = ({ where, orderBy, skip, take }) =>
-  prisma.unit.findMany({ where, orderBy, skip, take });
+  prisma.unit.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      department: { select: { id: true, name: true, code: true } },
+      _count: {
+        select: { positions: true, users: { where: { deletedAt: null } } },
+      },
+    },
+  });
 
 export const count = (where) => prisma.unit.count({ where });
 

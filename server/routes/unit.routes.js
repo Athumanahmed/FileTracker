@@ -29,6 +29,9 @@ router.get(
   unitController.listUnits,
 );
 
+// Registered before "/:id" -- otherwise Express would match "stats" as the :id param.
+router.get("/stats", authenticate, authorize("UNITS.READ"), unitController.getUnitStats);
+
 router.get("/:id", authenticate, authorize("UNITS.READ"), unitController.getUnit);
 
 // departmentId is immutable after creation (a unit can't be moved between

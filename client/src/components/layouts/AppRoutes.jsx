@@ -22,6 +22,8 @@ import SystemUsers from "../../pages/admin/SystemUsers";
 import CreateUser from "../../pages/admin/CreateUser";
 import AllDepartments from "../../pages/admin/AllDepartments";
 import CreateDepartment from "../../pages/admin/CreateDepartment";
+import AllUnits from "../../pages/admin/AllUnits";
+import CreateUnit from "../../pages/admin/CreateUnit";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -123,10 +125,15 @@ const AppRoutes = (
           path="units"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.UNITS_READ}>
-              <PlaceholderPage
-                title="Units"
-                description="Unit management is coming soon."
-              />
+              <AllUnits />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-unit"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.UNITS_CREATE}>
+              <CreateUnit />
             </RoleBasedRoute>
           }
         />
