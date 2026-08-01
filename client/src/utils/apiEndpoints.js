@@ -16,6 +16,12 @@ export const API_ENDPOINTS = {
     ADMIN_LIST: "/api/v1/admin/users",
     ADMIN_STATS: "/api/v1/admin/users/stats",
     ADMIN_DETAIL: (userId) => `/api/v1/admin/users/${userId}`,
+    // SYSTEM_ADMIN-creatable actors -- see server/routes/user.routes.js.
+    CREATE_DIRECTOR: "/api/v1/users/directors",
+    CREATE_HOD: "/api/v1/users/hods",
+    CREATE_REGISTRY_OFFICER: "/api/v1/users/registry-officers",
+    CREATE_ARCHIVE_OFFICER: "/api/v1/users/archive-officers",
+    CREATE_ICT_ADMIN: "/api/v1/users/ict-admins",
   },
 
   DASHBOARD: {

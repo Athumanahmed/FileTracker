@@ -1,6 +1,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { getAdminUsers } from "../utils/apiServices";
 import useAuthStore from "../store/authStore";
+import { STALE_TIME } from "../utils/queryConfig";
 
 /**
  * `params` (page, limit, search, isActive, status, departmentId, unitId,
@@ -21,5 +22,6 @@ export const useAdminUsersList = (params) => {
     },
     enabled: Boolean(accessToken),
     placeholderData: keepPreviousData,
+    staleTime: STALE_TIME.SHORT,
   });
 };

@@ -1,13 +1,6 @@
 import apiClient from "./apiClient";
 import { API_ENDPOINTS } from "./apiEndpoints";
-
-// Must match server/config/security.js's CSRF_COOKIE_NAME.
-const CSRF_COOKIE_NAME = "eftms_csrf_token";
-
-const getCookie = (name) => {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-};
+import { getCookie, CSRF_COOKIE_NAME } from "./cookies";
 
 const authHeader = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -67,6 +60,23 @@ export const getAdminUserById = (accessToken, userId) =>
 
 export const getAdminUserStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.USERS.ADMIN_STATS, authHeader(accessToken));
+
+// -- Users (creation) -- all SYSTEM_ADMIN-creatable, global-scope except HOD ---
+
+export const createDirector = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_DIRECTOR, payload, authHeader(accessToken));
+
+export const createHod = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_HOD, payload, authHeader(accessToken));
+
+export const createRegistryOfficer = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_REGISTRY_OFFICER, payload, authHeader(accessToken));
+
+export const createArchiveOfficer = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_ARCHIVE_OFFICER, payload, authHeader(accessToken));
+
+export const createIctAdmin = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_ICT_ADMIN, payload, authHeader(accessToken));
 
 // -- Organizational lookups (for filter dropdowns etc.) ----------------------
 

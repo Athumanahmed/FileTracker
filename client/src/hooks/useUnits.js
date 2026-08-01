@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getUnits } from "../utils/apiServices";
 import useAuthStore from "../store/authStore";
+import { STALE_TIME } from "../utils/queryConfig";
 
 /** Active units, optionally scoped to a department (e.g. cascading Department -> Unit filters). */
 export const useUnits = (departmentId) => {
@@ -18,6 +19,6 @@ export const useUnits = (departmentId) => {
       return data.data;
     },
     enabled: Boolean(accessToken),
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.LONG,
   });
 };

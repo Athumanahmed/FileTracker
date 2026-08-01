@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAdminDashboardSummary } from "../utils/apiServices";
 import useAuthStore from "../store/authStore";
+import { STALE_TIME } from "../utils/queryConfig";
 
 export const useAdminDashboardSummary = () => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -12,5 +13,6 @@ export const useAdminDashboardSummary = () => {
       return data.data;
     },
     enabled: Boolean(accessToken),
+    staleTime: STALE_TIME.SHORT,
   });
 };

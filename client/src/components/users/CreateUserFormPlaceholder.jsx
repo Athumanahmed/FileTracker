@@ -5,7 +5,7 @@ export const CreateUserFormPlaceholder = ({ actor }) => {
   const Icon = actor.icon;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6 sm:p-8 h-full flex flex-col items-center justify-center text-center min-h-[360px]">
+    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6 sm:p-8 h-full flex flex-col items-center justify-center text-center min-h-90">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primaryBlueLight text-primaryBlue mb-4">
         <Icon size={26} />
       </span>
@@ -26,7 +26,7 @@ export const CreateUserFormPlaceholder = ({ actor }) => {
 
 /** Shown before any actor type has been picked. */
 export const NoActorSelected = () => (
-  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-6 sm:p-8 h-full flex flex-col items-center justify-center text-center min-h-[360px]">
+  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-6 sm:p-8 h-full flex flex-col items-center justify-center text-center min-h-90">
     <MousePointerClick className="text-gray-300" size={32} />
     <p className="text-sm font-medium text-gray-600 mt-3">Select a user type</p>
     <p className="text-xs text-gray-400 mt-1 max-w-xs">

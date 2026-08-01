@@ -57,7 +57,10 @@ export const authenticate = async (req, res, next) => {
       decoded = verifyAccessToken(token);
     } catch (err) {
       if (err.name === "TokenExpiredError") {
-        throw new AppError(401, "Access token has expired");
+        // Machine-readable so the frontend's axios interceptor can silently
+        // refresh and retry instead of surfacing this as a dead end -- see
+        // client/src/utils/apiClient.js.
+        throw new AppError(401, "Access token has expired", { code: "ACCESS_TOKEN_EXPIRED" });
       }
       throw new AppError(401, "Invalid access token");
     }

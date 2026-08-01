@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getRoles } from "../utils/apiServices";
 import useAuthStore from "../store/authStore";
+import { STALE_TIME } from "../utils/queryConfig";
 
 /** Active roles, for dropdowns (e.g. the Users directory's role filter). */
 export const useRoles = () => {
@@ -13,6 +14,6 @@ export const useRoles = () => {
       return data.data;
     },
     enabled: Boolean(accessToken),
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.LONG,
   });
 };

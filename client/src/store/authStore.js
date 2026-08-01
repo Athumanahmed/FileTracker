@@ -10,6 +10,9 @@ const useAuthStore = create((set, get) => ({
 
   setAuth: ({ accessToken, user }) => set({ accessToken, user }),
   clearAuth: () => set({ accessToken: null, user: null }),
+  // Used by apiClient.js's response interceptor after a silent refresh --
+  // deliberately leaves `user` untouched, unlike setAuth.
+  setAccessToken: (accessToken) => set({ accessToken }),
 
 
   fetchUserProfile: async () => {

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDepartments } from "../utils/apiServices";
 import useAuthStore from "../store/authStore";
+import { STALE_TIME } from "../utils/queryConfig";
 
 /** Active departments, for dropdowns -- limit=100 comfortably covers a municipal council's roster. */
 export const useDepartments = () => {
@@ -13,6 +14,6 @@ export const useDepartments = () => {
       return data.data;
     },
     enabled: Boolean(accessToken),
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.LONG,
   });
 };

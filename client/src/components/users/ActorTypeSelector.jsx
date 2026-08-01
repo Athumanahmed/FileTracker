@@ -39,14 +39,14 @@ const ActorTypeSelector = ({ actors, selectedRoleCode, onSelect }) => (
               type="button"
               onClick={() => onSelect(actor)}
               aria-pressed={isActive}
-              className={`w-full flex items-start gap-3 rounded-xl p-3 text-left transition-colors mb-1 last:mb-0 ${
+              className={`w-full flex items-start gap-3 rounded-xl p-3 text-left transition-all duration-200 mb-1 last:mb-0 ${
                 isActive
                   ? "bg-primaryBlueLight border border-primaryBlue/30"
                   : "border border-transparent hover:bg-gray-50"
               }`}
             >
               <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
                   isActive
                     ? "bg-primaryBlue text-white"
                     : "bg-gray-100 text-gray-500"
@@ -69,11 +69,6 @@ const ActorTypeSelector = ({ actors, selectedRoleCode, onSelect }) => (
                 <p className="text-xs text-gray-500 mt-0.5">
                   {actor.description}
                 </p>
-                <span
-                  className={`inline-block mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${SCOPE_TONES[actor.scope]}`}
-                >
-                  {actor.scope} scope
-                </span>
               </div>
             </button>
           );
