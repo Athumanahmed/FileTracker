@@ -7,6 +7,7 @@ import {
   buildSearchClause,
   parseBooleanFilter,
 } from "../utils/queryOptions.js";
+import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as permissionRepository from "../repositories/permission.repository.js";
 
@@ -21,6 +22,11 @@ const MODULE_VALUES = [
   "WORKFLOW",
   "REPORTS",
   "SETTINGS",
+  // Added alongside the DASHBOARD SystemModule enum value (see
+  // prisma/schema.prisma) for the DASHBOARD.READ_ADMIN_SUMMARY permission --
+  // without it here, that permission could never be filtered by module
+  // through this API even though it validly exists with module=DASHBOARD.
+  "DASHBOARD",
 ];
 
 const SORTABLE_FIELDS = ["code", "name", "module", "createdAt", "updatedAt"];
@@ -35,6 +41,12 @@ const sanitize = (permission) => ({
   isActive: permission.isActive,
   createdAt: permission.createdAt,
   updatedAt: permission.updatedAt,
+});
+
+/** Listing adds the granted-roles count on top of the base shape. */
+const sanitizeListItem = (permission) => ({
+  ...sanitize(permission),
+  rolesCount: permission._count?.roles ?? 0,
 });
 
 /** Allowlisted snapshot for audit before/after -- keeps metadata small and stable. */
@@ -120,7 +132,34 @@ export const listPermissions = async ({ query }) => {
     permissionRepository.count(where),
   ]);
 
-  return { items: items.map(sanitize), meta: buildPaginationMeta(total, page, limit) };
+  return { items: items.map(sanitizeListItem), meta: buildPaginationMeta(total, page, limit) };
+};
+
+/**
+ * Powers the Permissions directory's stat cards. `total` carries a real
+ * week-over-week growth percent; active/inactive are point-in-time shares
+ * of total. `unassigned` counts permissions granted to zero roles --
+ * unlike Department/Unit/Position's "active" 4th metric, this is the more
+ * actionable signal for Permissions specifically: a permission nothing can
+ * reach is effectively dead weight, worth an admin's attention.
+ */
+export const getPermissionStats = async () => {
+  const [total, active, inactive, unassigned] = await Promise.all([
+    withWeeklyTrend(permissionRepository.count, {}),
+    permissionRepository.count({ isActive: true }),
+    permissionRepository.count({ isActive: false }),
+    permissionRepository.count({ roles: { none: {} } }),
+  ]);
+
+  const percentOf = (count) =>
+    total.total > 0 ? Math.round((count / total.total) * 1000) / 10 : 0;
+
+  return {
+    total,
+    active: { count: active, percent: percentOf(active) },
+    inactive: { count: inactive, percent: percentOf(inactive) },
+    unassigned: { count: unassigned },
+  };
 };
 
 /**

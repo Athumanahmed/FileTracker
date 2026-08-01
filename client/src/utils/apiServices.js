@@ -116,6 +116,14 @@ export const getRoleStats = (accessToken) =>
 export const createRole = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.ROLES.CREATE, payload, authHeader(accessToken));
 
+// -- Permissions ---------------------------------------------------------
+
+export const getPermissions = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.PERMISSIONS.LIST, { ...authHeader(accessToken), params });
+
+export const getPermissionStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.PERMISSIONS.STATS, authHeader(accessToken));
+
 // -- Dashboard ---------------------------------------------------------------
 
 export const getAdminDashboardSummary = (accessToken) =>

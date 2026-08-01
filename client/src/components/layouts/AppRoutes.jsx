@@ -28,6 +28,7 @@ import AllPositions from "../../pages/admin/AllPositions";
 import CreatePosition from "../../pages/admin/CreatePosition";
 import AllRoles from "../../pages/admin/AllRoles";
 import CreateRole from "../../pages/admin/CreateRole";
+import AllPermissions from "../../pages/admin/AllPermissions";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -177,10 +178,7 @@ const AppRoutes = (
           path="permissions"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.PERMISSIONS_READ}>
-              <PlaceholderPage
-                title="Permissions"
-                description="Permission catalog management is coming soon."
-              />
+              <AllPermissions />
             </RoleBasedRoute>
           }
         />

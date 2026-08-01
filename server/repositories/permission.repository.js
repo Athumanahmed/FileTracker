@@ -15,7 +15,15 @@ export const update = (id, data) => prisma.permission.update({ where: { id }, da
 export const setActive = (id, isActive) =>
   prisma.permission.update({ where: { id }, data: { isActive } });
 
+// Listing includes a count of granted roles, not the RolePermission rows
+// themselves -- the admin directory table only ever needs "how many".
 export const findMany = ({ where, orderBy, skip, take }) =>
-  prisma.permission.findMany({ where, orderBy, skip, take });
+  prisma.permission.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: { _count: { select: { roles: true } } },
+  });
 
 export const count = (where) => prisma.permission.count({ where });

@@ -29,6 +29,9 @@ router.get(
   permissionController.listPermissions,
 );
 
+// Registered before "/:id" -- otherwise Express would match "stats" as the :id param.
+router.get("/stats", authenticate, authorize("PERMISSIONS.READ"), permissionController.getPermissionStats);
+
 router.get("/:id", authenticate, authorize("PERMISSIONS.READ"), permissionController.getPermission);
 
 // code is intentionally NOT accepted here -- immutable after creation,

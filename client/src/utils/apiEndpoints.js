@@ -52,4 +52,9 @@ export const API_ENDPOINTS = {
     CREATE: "/api/v1/roles",
     STATS: "/api/v1/roles/stats",
   },
+
+  PERMISSIONS: {
+    LIST: "/api/v1/permissions",
+    STATS: "/api/v1/permissions/stats",
+  },
 };

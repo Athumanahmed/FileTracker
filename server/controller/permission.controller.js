@@ -28,6 +28,12 @@ export const listPermissions = asyncHandler(async (req, res) => {
   });
 });
 
+export const getPermissionStats = asyncHandler(async (req, res) => {
+  const stats = await permissionService.getPermissionStats();
+
+  res.status(200).json({ success: true, message: "Permission statistics retrieved successfully.", data: stats });
+});
+
 export const updatePermission = asyncHandler(async (req, res) => {
   const permission = await permissionService.updatePermission({
     id: req.params.id,
