@@ -84,6 +84,9 @@ export const createSupervisor = (accessToken, payload) =>
 export const createOfficer = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.USERS.CREATE_OFFICER, payload, authHeader(accessToken));
 
+export const updateOwnProfile = (accessToken, payload) =>
+  apiClient.put(API_ENDPOINTS.USERS.UPDATE_OWN_PROFILE, payload, authHeader(accessToken));
+
 // -- Organizational lookups (for filter dropdowns etc.) ----------------------
 
 export const getDepartments = (accessToken, params = {}) =>

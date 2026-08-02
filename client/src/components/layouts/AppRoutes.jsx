@@ -35,6 +35,7 @@ import ScopedDashboard from "../../pages/ScopedDashboard";
 import ScopedUsers from "../../pages/ScopedUsers";
 import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
+import Profile from "../../pages/Profile";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -93,6 +94,18 @@ const AppRoutes = (
           </Protected>
         }
       />
+
+      {/* /profile -- every authenticated user, any role, own account only. */}
+      <Route
+        path="profile"
+        element={
+          <Protected>
+            <AppLayout />
+          </Protected>
+        }
+      >
+        <Route index element={<Profile />} />
+      </Route>
 
       {/* System Admin -- /admin, /admin/users, /admin/departments, ... */}
       <Route path="admin" element={actorShell(ROLES.SYSTEM_ADMIN)}>

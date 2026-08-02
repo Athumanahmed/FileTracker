@@ -13,6 +13,11 @@ const useAuthStore = create((set, get) => ({
   // Used by apiClient.js's response interceptor after a silent refresh --
   // deliberately leaves `user` untouched, unlike setAuth.
   setAccessToken: (accessToken) => set({ accessToken }),
+  // Merges a partial user update (e.g. the self-service profile form's
+  // response) into the existing user object -- unlike setAuth, preserves
+  // fields the update response doesn't include (roles, department, unit,
+  // position, permissions).
+  updateUser: (partialUser) => set((state) => ({ user: { ...state.user, ...partialUser } })),
 
 
   fetchUserProfile: async () => {

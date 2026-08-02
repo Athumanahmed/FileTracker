@@ -26,6 +26,9 @@ export const API_ENDPOINTS = {
     // creates Officers (see server/config/organizationalHierarchy.js).
     CREATE_SUPERVISOR: "/api/v1/users/supervisors",
     CREATE_OFFICER: "/api/v1/users/officers",
+    // Self-service -- any authenticated user, no permission code involved
+    // (see server/routes/user.routes.js).
+    UPDATE_OWN_PROFILE: "/api/v1/users/profile",
   },
 
   DASHBOARD: {
