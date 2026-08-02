@@ -78,6 +78,12 @@ export const createArchiveOfficer = (accessToken, payload) =>
 export const createIctAdmin = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.USERS.CREATE_ICT_ADMIN, payload, authHeader(accessToken));
 
+export const createSupervisor = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_SUPERVISOR, payload, authHeader(accessToken));
+
+export const createOfficer = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.USERS.CREATE_OFFICER, payload, authHeader(accessToken));
+
 // -- Organizational lookups (for filter dropdowns etc.) ----------------------
 
 export const getDepartments = (accessToken, params = {}) =>
@@ -124,6 +130,17 @@ export const getPermissions = (accessToken, params = {}) =>
 export const getPermissionStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.PERMISSIONS.STATS, authHeader(accessToken));
 
+export const createPermission = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.PERMISSIONS.CREATE, payload, authHeader(accessToken));
+
+// -- Role Permissions ------------------------------------------------------
+
+export const getRolePermissions = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.ROLE_PERMISSIONS.LIST, { ...authHeader(accessToken), params });
+
+export const syncRolePermissions = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.ROLE_PERMISSIONS.SYNC, payload, authHeader(accessToken));
+
 // -- Dashboard ---------------------------------------------------------------
 
 export const getAdminDashboardSummary = (accessToken) =>
@@ -131,6 +148,15 @@ export const getAdminDashboardSummary = (accessToken) =>
 
 export const getAdminRecentActivity = (accessToken, limit = 10) =>
   apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN_RECENT_ACTIVITY, {
+    ...authHeader(accessToken),
+    params: { limit },
+  });
+
+export const getScopedDashboardSummary = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.SCOPED_SUMMARY, authHeader(accessToken));
+
+export const getScopedRecentActivity = (accessToken, limit = 10) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.SCOPED_RECENT_ACTIVITY, {
     ...authHeader(accessToken),
     params: { limit },
   });

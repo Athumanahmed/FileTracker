@@ -77,7 +77,7 @@ export const sidebarRoutes = {
     {
       title: "Users",
       icon: Users,
-      path: "/admin/users",
+      path: "/hod/users",
       permission: PERMISSIONS.USERS_READ,
     },
   ],
@@ -86,6 +86,12 @@ export const sidebarRoutes = {
   ],
   [ROLES.SUPERVISOR]: [
     { title: "Dashboard", icon: LayoutDashboard, path: "/supervisor" },
+    {
+      title: "Users",
+      icon: Users,
+      path: "/supervisor/users",
+      permission: PERMISSIONS.USERS_READ,
+    },
   ],
   [ROLES.OFFICER]: [
     { title: "Dashboard", icon: LayoutDashboard, path: "/officer" },

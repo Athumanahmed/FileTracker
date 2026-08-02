@@ -8,6 +8,8 @@ import {
 } from "../utils/queryOptions.js";
 import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as userRepository from "../repositories/user.repository.js";
+import * as authRepository from "../repositories/auth.repository.js";
+import { resolveActorScope, assertTargetWithinScope } from "./userScope.service.js";
 
 const SORTABLE_FIELDS = ["fullName", "username", "email", "createdAt", "lastLoginAt"];
 const SEARCHABLE_FIELDS = ["firstName", "lastName", "fullName", "username", "email", "phoneNumber"];
@@ -64,17 +66,45 @@ const sanitizeDetail = (user) => ({
 });
 
 /**
- * Global, unscoped listing for the Users admin module -- unlike write
- * operations (see adminUserUpdate.service.js), reading the full roster
- * isn't bounded by the actor's own department/unit scope, only by holding
- * USERS.READ (enforced at the route).
+ * USERS.READ is held by SYSTEM_ADMIN (GLOBAL), HOD (DEPARTMENT), and
+ * SUPERVISOR (UNIT) -- same permission bit, but the roster each of them
+ * can actually see is forced to their own scope here, on top of (never
+ * instead of) whatever filters the request itself specified. A HOD/
+ * Supervisor supplying a foreign departmentId/unitId filter just gets
+ * their own scope's results anyway, exactly as if they hadn't -- no error,
+ * since a stale/mismatched filter isn't a mutation attempt worth rejecting,
+ * just silently constrained. Mirrors userScope.service.js's
+ * resolveActorScope, the same mechanism creation already uses.
  */
-export const listUsersForAdmin = async ({ query }) => {
+const applyActorScope = async (actorId, where) => {
+  const [actor, roleCodes] = await Promise.all([
+    authRepository.findUserById(actorId),
+    userRepository.findActiveRoleCodesForUser(actorId),
+  ]);
+  if (!actor) throw new AppError(404, "Actor not found");
+
+  const { scopeType } = resolveActorScope(roleCodes);
+
+  if (scopeType === "GLOBAL") return where;
+  if (scopeType === "DEPARTMENT") return { ...where, departmentId: actor.departmentId };
+  return { ...where, departmentId: actor.departmentId, unitId: actor.unitId }; // UNIT
+};
+
+const resolveActorForScopeCheck = async (actorId) => {
+  const [actor, roleCodes] = await Promise.all([
+    authRepository.findUserById(actorId),
+    userRepository.findActiveRoleCodesForUser(actorId),
+  ]);
+  if (!actor) throw new AppError(404, "Actor not found");
+  return { actor, ...resolveActorScope(roleCodes) };
+};
+
+export const listUsersForAdmin = async ({ query, actorId }) => {
   const { page, limit, skip, take } = parsePagination(query);
   const orderBy = parseSort(query, SORTABLE_FIELDS, "createdAt");
   const isActive = parseBooleanFilter(query.isActive);
 
-  const where = {
+  const baseWhere = {
     deletedAt: null,
     ...(isActive !== undefined ? { isActive } : {}),
     ...(query.status ? { status: query.status } : {}),
@@ -83,6 +113,7 @@ export const listUsersForAdmin = async ({ query }) => {
     ...(query.roleCode ? { roles: { some: { role: { code: query.roleCode } } } } : {}),
     ...buildSearchClause(query.search, SEARCHABLE_FIELDS),
   };
+  const where = await applyActorScope(actorId, baseWhere);
 
   const [items, total] = await Promise.all([
     userRepository.findManyForAdmin({ where, orderBy, skip, take }),
@@ -92,9 +123,18 @@ export const listUsersForAdmin = async ({ query }) => {
   return { items: items.map(sanitizeSummary), meta: buildPaginationMeta(total, page, limit) };
 };
 
-export const getUserByIdForAdmin = async (id) => {
+export const getUserByIdForAdmin = async (id, actorId) => {
   const user = await userRepository.findByIdForAdmin(id);
   if (!user) throw new AppError(404, "User not found");
+
+  const { actingRoleCode, scopeType, actor } = await resolveActorForScopeCheck(actorId);
+  assertTargetWithinScope({
+    actingRoleCode,
+    scopeType,
+    actor,
+    targetUser: { departmentId: user.department?.id ?? null, unitId: user.unit?.id ?? null },
+  });
+
   return sanitizeDetail(user);
 };
 
@@ -104,8 +144,8 @@ export const getUserByIdForAdmin = async (id) => {
  * locked are point-in-time counts with their share of the total, not a
  * trend -- there's no meaningful "grew 5%" framing for "currently locked."
  */
-export const getUserStatsForAdmin = async () => {
-  const baseWhere = { deletedAt: null };
+export const getUserStatsForAdmin = async ({ actorId }) => {
+  const baseWhere = await applyActorScope(actorId, { deletedAt: null });
 
   const [total, active, inactive, locked] = await Promise.all([
     withWeeklyTrend(userRepository.countForAdmin, baseWhere),

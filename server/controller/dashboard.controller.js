@@ -20,3 +20,24 @@ export const getRecentActivity = asyncHandler(async (req, res) => {
 
   res.status(200).json({ success: true, message: "Recent activity retrieved successfully.", data: activity });
 });
+
+export const getScopedSummary = asyncHandler(async (req, res) => {
+  const summary = await dashboardService.getScopedSummary(req.user.userId);
+
+  res
+    .status(200)
+    .json({ success: true, message: "Scoped dashboard summary retrieved successfully.", data: summary });
+});
+
+export const getScopedRecentActivity = asyncHandler(async (req, res) => {
+  const requested = parseInt(req.query.limit, 10);
+  const limit = Number.isNaN(requested)
+    ? DEFAULT_RECENT_ACTIVITY_LIMIT
+    : Math.min(Math.max(requested, 1), MAX_RECENT_ACTIVITY_LIMIT);
+
+  const activity = await dashboardService.getScopedRecentActivity(req.user.userId, limit);
+
+  res
+    .status(200)
+    .json({ success: true, message: "Scoped recent activity retrieved successfully.", data: activity });
+});

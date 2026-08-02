@@ -17,3 +17,25 @@ export const findRecentAuditLogs = (take) =>
       user: { select: { fullName: true, username: true } },
     },
   });
+
+/** Users holding a given role, optionally further scoped to a department/unit -- e.g. "Supervisors in my department". */
+export const countUsersByRole = ({ departmentId, unitId, roleCode }) =>
+  prisma.user.count({
+    where: {
+      deletedAt: null,
+      ...(departmentId ? { departmentId } : {}),
+      ...(unitId ? { unitId } : {}),
+      roles: { some: { role: { code: roleCode } } },
+    },
+  });
+
+/** Powers the HOD/Supervisor scoped dashboard's "recent activity" -- the actor's own recent actions, not their whole department's. */
+export const findRecentAuditLogsByUser = (userId, take) =>
+  prisma.auditLog.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take,
+    include: {
+      user: { select: { fullName: true, username: true } },
+    },
+  });

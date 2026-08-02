@@ -37,17 +37,7 @@ export const roleTableColumns = [
       );
     },
   },
-  {
-    id: "description",
-    accessorKey: "description",
-    header: "Description",
-    enableSorting: false,
-    cell: ({ getValue }) => (
-      <span className="text-gray-600 line-clamp-1 max-w-70">
-        {getValue() || "—"}
-      </span>
-    ),
-  },
+
   {
     id: "isSystem",
     accessorKey: "isSystem",

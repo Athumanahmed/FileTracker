@@ -46,9 +46,34 @@ const ACCOUNT_MANAGEMENT_PERMISSIONS = [
   "USERS.ROLES.REMOVE",
 ];
 
+/**
+ * USERS.READ, DASHBOARD.READ_SCOPED_SUMMARY, and ROLES.READ are shared by
+ * both roles -- the endpoints behind them (adminUserQuery.service.js,
+ * dashboard.service.js's getScopedSummary/getScopedRecentActivity) auto-scope
+ * to the actor's own department/unit server-side (see
+ * userScope.service.js#resolveActorScope), so granting the same permission
+ * bit to HOD and SUPERVISOR is safe -- it never exposes data outside their
+ * own scope. ROLES.READ specifically powers the Users directory's role
+ * filter dropdown (the Role catalog itself isn't scoped -- there's nothing
+ * department/unit-specific to leak). UNITS.READ is HOD-only: the Create
+ * Supervisor form needs to populate a Unit dropdown scoped to the HOD's own
+ * department; Supervisor's Create Officer form has no org picker at all
+ * (both department and unit are server-injected), so it doesn't need it.
+ */
+const SCOPED_READ_PERMISSIONS = ["USERS.READ", "DASHBOARD.READ_SCOPED_SUMMARY", "ROLES.READ"];
+
 const EXPLICIT_ROLE_PERMISSIONS = {
-  HOD: ["USERS.CREATE.SUPERVISOR", ...ACCOUNT_MANAGEMENT_PERMISSIONS],
-  SUPERVISOR: ["USERS.CREATE.OFFICER", ...ACCOUNT_MANAGEMENT_PERMISSIONS],
+  HOD: [
+    "USERS.CREATE.SUPERVISOR",
+    "UNITS.READ",
+    ...SCOPED_READ_PERMISSIONS,
+    ...ACCOUNT_MANAGEMENT_PERMISSIONS,
+  ],
+  SUPERVISOR: [
+    "USERS.CREATE.OFFICER",
+    ...SCOPED_READ_PERMISSIONS,
+    ...ACCOUNT_MANAGEMENT_PERMISSIONS,
+  ],
 };
 
 export async function seedRolePermissions() {

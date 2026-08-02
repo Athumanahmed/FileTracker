@@ -19,4 +19,21 @@ router.get(
   dashboardController.getRecentActivity,
 );
 
+// Shared by every DEPARTMENT/UNIT-scoped role (HOD, SUPERVISOR) -- the
+// response shape adapts to the actor's own scope (see
+// dashboard.service.js#getScopedSummary), not two near-identical routes.
+router.get(
+  "/scoped/summary",
+  authenticate,
+  authorize("DASHBOARD.READ_SCOPED_SUMMARY"),
+  dashboardController.getScopedSummary,
+);
+
+router.get(
+  "/scoped/recent-activity",
+  authenticate,
+  authorize("DASHBOARD.READ_SCOPED_SUMMARY"),
+  dashboardController.getScopedRecentActivity,
+);
+
 export default router;

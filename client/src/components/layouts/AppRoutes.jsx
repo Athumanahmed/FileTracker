@@ -29,6 +29,12 @@ import CreatePosition from "../../pages/admin/CreatePosition";
 import AllRoles from "../../pages/admin/AllRoles";
 import CreateRole from "../../pages/admin/CreateRole";
 import AllPermissions from "../../pages/admin/AllPermissions";
+import CreatePermission from "../../pages/admin/CreatePermission";
+import RolePermissions from "../../pages/admin/RolePermissions";
+import ScopedDashboard from "../../pages/ScopedDashboard";
+import ScopedUsers from "../../pages/ScopedUsers";
+import CreateSupervisor from "../../pages/hod/CreateSupervisor";
+import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -51,14 +57,12 @@ const actorShell = (role) => (
   </Protected>
 );
 
-// System Admin is the only role with its module tree structured so far --
-// everything else gets a placeholder index page until its own routes
-// (e.g. /hod/departments) are built, same as sidebarRoutes.js.
+// System Admin, HOD, and Supervisor have structured module trees --
+// everything else gets a placeholder index page until its own routes are
+// built, same as sidebarRoutes.js.
 const OTHER_ROLE_DASHBOARDS = [
   { role: ROLES.DIRECTOR, path: "director", title: "Director Dashboard" },
-  { role: ROLES.HOD, path: "hod", title: "Head of Department Dashboard" },
   { role: ROLES.REGISTRY, path: "registry", title: "Registry Dashboard" },
-  { role: ROLES.SUPERVISOR, path: "supervisor", title: "Supervisor Dashboard" },
   { role: ROLES.OFFICER, path: "officer", title: "Officer Dashboard" },
   { role: ROLES.ARCHIVE, path: "archive", title: "Archive Dashboard" },
   {
@@ -183,15 +187,20 @@ const AppRoutes = (
           }
         />
         <Route
+          path="create-permission"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.PERMISSIONS_CREATE}>
+              <CreatePermission />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
           path="role-permissions"
           element={
             <RoleBasedRoute
               requiredPermission={PERMISSIONS.ROLE_PERMISSIONS_READ}
             >
-              <PlaceholderPage
-                title="Role Permissions"
-                description="Role-to-permission assignment is coming soon."
-              />
+              <RolePermissions />
             </RoleBasedRoute>
           }
         />
@@ -214,6 +223,48 @@ const AppRoutes = (
               title="System Settings"
               description="System settings are coming soon."
             />
+          }
+        />
+      </Route>
+
+      {/* Head of Department -- /hod, /hod/users, /hod/create-supervisor. */}
+      <Route path="hod" element={actorShell(ROLES.HOD)}>
+        <Route index element={<ScopedDashboard />} />
+        <Route
+          path="users"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_READ}>
+              <ScopedUsers />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-supervisor"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_CREATE_SUPERVISOR}>
+              <CreateSupervisor />
+            </RoleBasedRoute>
+          }
+        />
+      </Route>
+
+      {/* Supervisor -- /supervisor, /supervisor/users, /supervisor/create-officer. */}
+      <Route path="supervisor" element={actorShell(ROLES.SUPERVISOR)}>
+        <Route index element={<ScopedDashboard />} />
+        <Route
+          path="users"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_READ}>
+              <ScopedUsers />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-officer"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_CREATE_OFFICER}>
+              <CreateOfficer />
+            </RoleBasedRoute>
           }
         />
       </Route>

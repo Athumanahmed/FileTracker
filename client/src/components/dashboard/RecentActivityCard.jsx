@@ -13,7 +13,6 @@ import {
   Activity,
   AlertTriangle,
 } from "lucide-react";
-import { useAdminRecentActivity } from "../../hooks/useAdminRecentActivity";
 
 dayjs.extend(relativeTime);
 
@@ -48,12 +47,16 @@ const Skeleton = () => (
   </div>
 );
 
-const RecentActivityCard = () => {
-  const { data, isLoading, isError, refetch } = useAdminRecentActivity(5);
-
+/**
+ * Purely presentational -- the data-fetching hook (useAdminRecentActivity
+ * for the System Admin dashboard, useScopedRecentActivity for HOD/
+ * Supervisor's) is chosen by the caller and passed in, so this one card
+ * serves every dashboard rather than being duplicated per role.
+ */
+const RecentActivityCard = ({ title = "Recent Activities", data, isLoading, isError, refetch }) => {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm flex flex-col">
-      <h2 className="font-semibold text-gray-900">Recent Activities</h2>
+      <h2 className="font-semibold text-gray-900">{title}</h2>
 
       <div className="mt-4 flex-1">
         {isLoading ? (

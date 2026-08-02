@@ -98,6 +98,15 @@ export async function seedPermissions() {
       name: "View Admin Dashboard Summary",
       module: "DASHBOARD",
     },
+    // Shared by every DEPARTMENT/UNIT-scoped role (HOD, SUPERVISOR) -- the
+    // response shape adapts to the actor's own scope (see
+    // dashboard.service.js#getScopedSummary), so one permission code covers
+    // both rather than one per role.
+    {
+      code: "DASHBOARD.READ_SCOPED_SUMMARY",
+      name: "View Own Department/Unit Dashboard Summary",
+      module: "DASHBOARD",
+    },
   ];
 
   for (const permission of permissions) {

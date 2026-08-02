@@ -1,4 +1,12 @@
-import { Eye, Pencil, Building2, Boxes, Users, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Building2,
+  Boxes,
+  Users,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDateTime } from "../../utils/formatters";
 import RowActionsMenu from "../shared/RowActionsMenu";
@@ -22,22 +30,16 @@ export const departmentTableColumns = [
             <Building2 size={16} />
           </span>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">{department.name}</p>
+            <p className="font-medium text-gray-900 truncate">
+              {department.name}
+            </p>
             <p className="text-xs text-gray-500 truncate">{department.code}</p>
           </div>
         </div>
       );
     },
   },
-  {
-    id: "description",
-    accessorKey: "description",
-    header: "Description",
-    enableSorting: false,
-    cell: ({ getValue }) => (
-      <span className="text-gray-600 line-clamp-1 max-w-70">{getValue() || "—"}</span>
-    ),
-  },
+
   {
     id: "unitsCount",
     accessorKey: "unitsCount",
@@ -84,7 +86,9 @@ export const departmentTableColumns = [
     id: "createdAt",
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ getValue }) => <span className="text-gray-600">{formatDateTime(getValue())}</span>,
+    cell: ({ getValue }) => (
+      <span className="text-gray-600">{formatDateTime(getValue())}</span>
+    ),
   },
   {
     id: "actions",
@@ -99,20 +103,30 @@ export const departmentTableColumns = [
           <RowActionsMenu
             label={`Actions for ${department.name}`}
             actions={[
-              { label: "View Details", icon: Eye, onClick: () => toast("Department detail view is coming soon.") },
-              { label: "Edit Department", icon: Pencil, onClick: () => toast("Editing departments is coming soon.") },
+              {
+                label: "View Details",
+                icon: Eye,
+                onClick: () => toast("Department detail view is coming soon."),
+              },
+              {
+                label: "Edit Department",
+                icon: Pencil,
+                onClick: () => toast("Editing departments is coming soon."),
+              },
               { type: "divider" },
               department.isActive
                 ? {
                     label: "Deactivate",
                     icon: XCircle,
                     variant: "danger",
-                    onClick: () => toast("Deactivating departments is coming soon."),
+                    onClick: () =>
+                      toast("Deactivating departments is coming soon."),
                   }
                 : {
                     label: "Activate",
                     icon: CheckCircle2,
-                    onClick: () => toast("Activating departments is coming soon."),
+                    onClick: () =>
+                      toast("Activating departments is coming soon."),
                   },
             ]}
           />

@@ -1,21 +1,15 @@
-import { Eye, Pencil, KeyRound, Link2, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  KeyRound,
+  Link2,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDateTime } from "../../utils/formatters";
+import { MODULE_LABELS, MODULE_BADGE_CLASSES } from "../../utils/permissionModules";
 import RowActionsMenu from "../shared/RowActionsMenu";
-
-const MODULE_DISPLAY = {
-  AUTHENTICATION: { label: "Authentication", className: "bg-blue-50 text-blue-700" },
-  AUTHORIZATION: { label: "Authorization", className: "bg-indigo-50 text-indigo-700" },
-  USERS: { label: "Users", className: "bg-primaryBlueLight text-primaryBlue" },
-  DEPARTMENTS: { label: "Departments", className: "bg-teal-50 text-teal-700" },
-  UNITS: { label: "Units", className: "bg-cyan-50 text-cyan-700" },
-  POSITIONS: { label: "Positions", className: "bg-purple-50 text-purple-700" },
-  FILE_TRACKING: { label: "File Tracking", className: "bg-amber-50 text-amber-700" },
-  WORKFLOW: { label: "Workflow", className: "bg-pink-50 text-pink-700" },
-  REPORTS: { label: "Reports", className: "bg-green-50 text-green-700" },
-  SETTINGS: { label: "Settings", className: "bg-gray-100 text-gray-700" },
-  DASHBOARD: { label: "Dashboard", className: "bg-rose-50 text-rose-700" },
-};
 
 /**
  * `id` on the sortable columns (name, code, module, createdAt) must
@@ -36,7 +30,9 @@ export const permissionTableColumns = [
             <KeyRound size={16} />
           </span>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">{permission.name}</p>
+            <p className="font-medium text-gray-900 truncate">
+              {permission.name}
+            </p>
             <p className="text-xs text-gray-500 truncate">{permission.code}</p>
           </div>
         </div>
@@ -48,23 +44,18 @@ export const permissionTableColumns = [
     accessorKey: "module",
     header: "Module",
     cell: ({ getValue }) => {
-      const display = MODULE_DISPLAY[getValue()] || { label: getValue(), className: "bg-gray-100 text-gray-700" };
+      const label = MODULE_LABELS[getValue()] || getValue();
+      const className = MODULE_BADGE_CLASSES[getValue()] || "bg-gray-100 text-gray-700";
       return (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${display.className}`}>
-          {display.label}
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${className}`}
+        >
+          {label}
         </span>
       );
     },
   },
-  {
-    id: "description",
-    accessorKey: "description",
-    header: "Description",
-    enableSorting: false,
-    cell: ({ getValue }) => (
-      <span className="text-gray-600 line-clamp-1 max-w-70">{getValue() || "—"}</span>
-    ),
-  },
+
   {
     id: "rolesCount",
     accessorKey: "rolesCount",
@@ -99,7 +90,9 @@ export const permissionTableColumns = [
     id: "createdAt",
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ getValue }) => <span className="text-gray-600">{formatDateTime(getValue())}</span>,
+    cell: ({ getValue }) => (
+      <span className="text-gray-600">{formatDateTime(getValue())}</span>
+    ),
   },
   {
     id: "actions",
@@ -114,20 +107,30 @@ export const permissionTableColumns = [
           <RowActionsMenu
             label={`Actions for ${permission.name}`}
             actions={[
-              { label: "View Details", icon: Eye, onClick: () => toast("Permission detail view is coming soon.") },
-              { label: "Edit Permission", icon: Pencil, onClick: () => toast("Editing permissions is coming soon.") },
+              {
+                label: "View Details",
+                icon: Eye,
+                onClick: () => toast("Permission detail view is coming soon."),
+              },
+              {
+                label: "Edit Permission",
+                icon: Pencil,
+                onClick: () => toast("Editing permissions is coming soon."),
+              },
               { type: "divider" },
               permission.isActive
                 ? {
                     label: "Deactivate",
                     icon: XCircle,
                     variant: "danger",
-                    onClick: () => toast("Deactivating permissions is coming soon."),
+                    onClick: () =>
+                      toast("Deactivating permissions is coming soon."),
                   }
                 : {
                     label: "Activate",
                     icon: CheckCircle2,
-                    onClick: () => toast("Activating permissions is coming soon."),
+                    onClick: () =>
+                      toast("Activating permissions is coming soon."),
                   },
             ]}
           />

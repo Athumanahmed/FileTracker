@@ -13,7 +13,9 @@ import { listUsersValidationRules } from "../validators/adminUserQuery.validatio
 
 const router = Router();
 
-// -- Read: global, unscoped listing/detail for the Users admin module ----
+// -- Read: listing/detail for the Users admin module -- auto-scoped to the
+// actor's own department/unit for HOD/SUPERVISOR, unrestricted for
+// SYSTEM_ADMIN (see adminUserQuery.service.js#applyActorScope) --------------
 router.get(
   "/",
   authenticate,

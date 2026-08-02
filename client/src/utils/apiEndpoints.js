@@ -22,11 +22,17 @@ export const API_ENDPOINTS = {
     CREATE_REGISTRY_OFFICER: "/api/v1/users/registry-officers",
     CREATE_ARCHIVE_OFFICER: "/api/v1/users/archive-officers",
     CREATE_ICT_ADMIN: "/api/v1/users/ict-admins",
+    // Department/Unit-scoped actors -- HOD creates Supervisors, Supervisor
+    // creates Officers (see server/config/organizationalHierarchy.js).
+    CREATE_SUPERVISOR: "/api/v1/users/supervisors",
+    CREATE_OFFICER: "/api/v1/users/officers",
   },
 
   DASHBOARD: {
     ADMIN_SUMMARY: "/api/v1/dashboard/admin/summary",
     ADMIN_RECENT_ACTIVITY: "/api/v1/dashboard/admin/recent-activity",
+    SCOPED_SUMMARY: "/api/v1/dashboard/scoped/summary",
+    SCOPED_RECENT_ACTIVITY: "/api/v1/dashboard/scoped/recent-activity",
   },
 
   DEPARTMENTS: {
@@ -55,6 +61,12 @@ export const API_ENDPOINTS = {
 
   PERMISSIONS: {
     LIST: "/api/v1/permissions",
+    CREATE: "/api/v1/permissions",
     STATS: "/api/v1/permissions/stats",
+  },
+
+  ROLE_PERMISSIONS: {
+    LIST: "/api/v1/role-permissions",
+    SYNC: "/api/v1/role-permissions/sync",
   },
 };

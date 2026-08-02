@@ -1,38 +1,39 @@
 import { useEffect, useState } from "react";
 import { Search, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { useRoles } from "../../hooks/useRoles";
 import useDebounce from "../../hooks/useDebounce";
-import { MODULE_OPTIONS } from "../../utils/permissionModules";
-
-const FILTER_MODULE_OPTIONS = [{ value: "", label: "All Modules" }, ...MODULE_OPTIONS];
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Statuses" },
-  { value: "true", label: "Active" },
-  { value: "false", label: "Inactive" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "PENDING_ACTIVATION", label: "Pending Activation" },
+  { value: "LOCKED", label: "Locked" },
+  { value: "SUSPENDED", label: "Suspended" },
+  { value: "DISABLED", label: "Disabled" },
+  { value: "ARCHIVED", label: "Archived" },
 ];
 
 const selectClassName =
   "rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition-all focus:ring-2 focus:ring-primaryBlue/15 focus:border-primaryBlue disabled:bg-gray-50 disabled:text-gray-400";
 
-/** All three filters map 1:1 onto GET /api/v1/permissions' query params (search, module, isActive). */
-const PermissionsFilterBar = ({
-  search,
-  onSearchChange,
-  module,
-  onModuleChange,
-  isActive,
-  onIsActiveChange,
-  onReset,
-}) => {
+/**
+ * Lighter than UsersFilterBar (no department/unit pickers) -- HOD/Supervisor's
+ * roster is already fully scoped server-side (see
+ * adminUserQuery.service.js#applyActorScope), so a department/unit filter
+ * would only ever have one meaningful value and would just be confusing.
+ */
+const ScopedUsersFilterBar = ({ search, onSearchChange, status, onStatusChange, roleCode, onRoleChange, onReset }) => {
   const [searchInput, setSearchInput] = useState(search);
   const debouncedSearch = useDebounce(searchInput, 400);
+
+  const { data: roles, isLoading: rolesLoading } = useRoles();
 
   useEffect(() => {
     onSearchChange(debouncedSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
-  const activeFilterCount = [search, module, isActive].filter(Boolean).length;
+  const activeFilterCount = [search, status, roleCode].filter(Boolean).length;
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center gap-3">
@@ -42,24 +43,30 @@ const PermissionsFilterBar = ({
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search permissions by name or code..."
+          placeholder="Search by name, email, or username..."
           className="w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 py-2.5 text-sm outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-primaryBlue/15 focus:border-primaryBlue"
         />
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <select value={module} onChange={(e) => onModuleChange(e.target.value)} className={selectClassName}>
-          {FILTER_MODULE_OPTIONS.map((option) => (
+        <select value={status} onChange={(e) => onStatusChange(e.target.value)} className={selectClassName}>
+          {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </select>
 
-        <select value={isActive} onChange={(e) => onIsActiveChange(e.target.value)} className={selectClassName}>
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+        <select
+          value={roleCode}
+          onChange={(e) => onRoleChange(e.target.value)}
+          disabled={rolesLoading}
+          className={selectClassName}
+        >
+          <option value="">All Roles</option>
+          {roles?.map((role) => (
+            <option key={role.id} value={role.code}>
+              {role.name}
             </option>
           ))}
         </select>
@@ -89,4 +96,4 @@ const PermissionsFilterBar = ({
   );
 };
 
-export default PermissionsFilterBar;
+export default ScopedUsersFilterBar;

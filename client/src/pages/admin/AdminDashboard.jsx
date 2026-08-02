@@ -11,6 +11,7 @@ import RecentActivityCard from "../../components/dashboard/RecentActivityCard";
 import SystemAlertsCard from "../../components/dashboard/SystemAlertsCard";
 import QuickActionsCard from "../../components/dashboard/QuickActionsCard";
 import { useAdminDashboardSummary } from "../../hooks/useAdminDashboardSummary";
+import { useAdminRecentActivity } from "../../hooks/useAdminRecentActivity";
 
 const STAT_CARDS = [
   { key: "users", label: "Total Users", icon: Users, tone: "blue", to: "/admin/users" },
@@ -24,6 +25,12 @@ const STAT_CARDS = [
 const AdminDashboard = () => {
   const user = useAuthStore((state) => state.user);
   const { data: summary, isLoading, isError, refetch } = useAdminDashboardSummary();
+  const {
+    data: recentActivity,
+    isLoading: recentActivityLoading,
+    isError: recentActivityError,
+    refetch: refetchRecentActivity,
+  } = useAdminRecentActivity(5);
 
   // Mirrors the 7-day window server/services/dashboard.service.js's trend
   // calculation actually measures, so the label means what it says.
@@ -87,7 +94,12 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-            <RecentActivityCard />
+            <RecentActivityCard
+              data={recentActivity}
+              isLoading={recentActivityLoading}
+              isError={recentActivityError}
+              refetch={refetchRecentActivity}
+            />
             <SystemAlertsCard inactiveUsersCount={summary?.alerts?.inactiveUsers} loading={isLoading} />
             <QuickActionsCard />
           </div>

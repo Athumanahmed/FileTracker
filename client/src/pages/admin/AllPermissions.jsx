@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import { KeyRound, CheckCircle2, XCircle, Unlink, Plus } from "lucide-react";
 import PageHeader from "../../components/shared/PageHeader";
 import StatCard from "../../components/shared/StatCard";
@@ -63,11 +62,7 @@ const AllPermissions = () => {
         title="Permissions"
         description="Manage system permissions and which roles they're granted to."
         breadcrumbs={[{ label: "Dashboard", to: "/admin" }, { label: "Permissions" }]}
-        primaryAction={{
-          label: "Add Permission",
-          icon: Plus,
-          onClick: () => toast("Permission creation is coming soon."),
-        }}
+        primaryAction={{ label: "Add Permission", icon: Plus, to: "/admin/create-permission" }}
       />
 
       {statsError ? (
