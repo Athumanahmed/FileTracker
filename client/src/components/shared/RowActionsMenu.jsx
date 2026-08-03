@@ -8,7 +8,7 @@ const VIEWPORT_MARGIN = 8;
 const TRIGGER_GAP = 6;
 
 /** Renders as a Link (to), an anchor (href), or a button (onClick) -- same convention as PageHeader's action items. */
-const ActionItem = ({ label, icon: Icon, to, href, onClick, disabled, variant = "default", onDone }) => {
+const ActionItem = ({ label, icon: Icon, to, state, href, onClick, disabled, variant = "default", onDone }) => {
   const className = `flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
     variant === "danger" ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"
   }`;
@@ -22,7 +22,7 @@ const ActionItem = ({ label, icon: Icon, to, href, onClick, disabled, variant = 
 
   if (to) {
     return (
-      <Link to={to} className={className} onClick={onDone} role="menuitem">
+      <Link to={to} state={state} className={className} onClick={onDone} role="menuitem">
         {content}
       </Link>
     );

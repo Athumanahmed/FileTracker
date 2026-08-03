@@ -1,6 +1,13 @@
-import { Hash, Building2, Tag, Shield, UserCircle2, Calendar, User, Phone, IdCard, Archive } from "lucide-react";
+import { useState } from "react";
+import { Hash, Building2, Tag, Shield, UserCircle2, Calendar, User, Phone, IdCard, Archive, ArchiveRestore } from "lucide-react";
 import { formatDateTime } from "../../../utils/formatters";
 import { getFileStatusMeta, getFilePriorityMeta } from "../../../utils/fileStatusMeta";
+import useAuthStore from "../../../store/authStore";
+import { PERMISSIONS } from "../../../utils/permissions";
+import ArchiveFileModal from "../ArchiveFileModal";
+import RestoreFileModal from "../RestoreFileModal";
+
+const ARCHIVABLE_STATUSES = ["COMPLETED", "REJECTED", "CLOSED"];
 
 const InfoRow = ({ icon: Icon, label, value }) => (
   <div className="flex items-center justify-between gap-4 py-2.5">
@@ -21,21 +28,57 @@ const CONFIDENTIALITY_LABELS = {
 
 /** file: GET /files/:id's response shape. archiveStatus: GET /files/:id/archive's response shape (null if never archived). */
 const FileOverviewTab = ({ file, archiveStatus }) => {
+  const user = useAuthStore((state) => state.user);
+  const canManageArchive = user?.permissions?.includes(PERMISSIONS.ARCHIVE_MANAGE);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+
   const status = getFileStatusMeta(file.status);
   const priority = getFilePriorityMeta(file.priority);
+  const canArchive = canManageArchive && !archiveStatus && ARCHIVABLE_STATUSES.includes(file.status);
 
   return (
     <div className="space-y-4">
       {archiveStatus && (
-        <div className="flex items-start gap-3 rounded-2xl border border-purple-100 bg-purple-50 p-4">
-          <Archive size={18} className="mt-0.5 shrink-0 text-purple-600" />
-          <div>
-            <p className="text-sm font-semibold text-purple-800">This file is archived and read-only.</p>
-            <p className="text-xs text-purple-700 mt-0.5">
-              Archived {formatDateTime(archiveStatus.archivedAt)} by {archiveStatus.archivedBy?.fullName ?? "—"}
-              {archiveStatus.retentionExpiresAt && <> &middot; retention until {formatDateTime(archiveStatus.retentionExpiresAt)}</>}
-            </p>
+        <div className="flex items-start justify-between gap-3 rounded-2xl border border-purple-100 bg-purple-50 p-4">
+          <div className="flex items-start gap-3">
+            <Archive size={18} className="mt-0.5 shrink-0 text-purple-600" />
+            <div>
+              <p className="text-sm font-semibold text-purple-800">This file is archived and read-only.</p>
+              <p className="text-xs text-purple-700 mt-0.5">
+                Archived {formatDateTime(archiveStatus.archivedAt)} by {archiveStatus.archivedBy?.fullName ?? "—"}
+                {archiveStatus.retentionExpiresAt && <> &middot; retention until {formatDateTime(archiveStatus.retentionExpiresAt)}</>}
+                {archiveStatus.storageLocation && <> &middot; {archiveStatus.storageLocation}</>}
+              </p>
+            </div>
           </div>
+          {canManageArchive && (
+            <button
+              type="button"
+              onClick={() => setShowRestoreModal(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 transition-colors"
+            >
+              <ArchiveRestore size={15} />
+              Restore
+            </button>
+          )}
+        </div>
+      )}
+
+      {canArchive && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">This file is ready to archive.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Its case is {status.label.toLowerCase()} -- move it into long-term retention.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowArchiveModal(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primaryBlue px-4 py-2.5 text-sm font-semibold text-white hover:bg-primaryBlueDark transition-colors"
+          >
+            <Archive size={15} />
+            Archive File
+          </button>
         </div>
       )}
 
@@ -86,6 +129,13 @@ const FileOverviewTab = ({ file, archiveStatus }) => {
           )}
         </div>
       </div>
+
+      {canManageArchive && (
+        <>
+          <ArchiveFileModal file={file} isOpen={showArchiveModal} onClose={() => setShowArchiveModal(false)} />
+          <RestoreFileModal file={file} isOpen={showRestoreModal} onClose={() => setShowRestoreModal(false)} />
+        </>
+      )}
     </div>
   );
 };

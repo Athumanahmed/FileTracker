@@ -39,6 +39,14 @@ export const getWorkflowStatus = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Workflow status retrieved successfully.", data: status });
 });
 
+export const getEligibleTargets = asyncHandler(async (req, res) => {
+  const result = await workflowEngineService.listEligibleTargets({
+    fileId: req.params.fileId,
+    action: req.query.action,
+  });
+  res.status(200).json({ success: true, message: "Eligible targets retrieved successfully.", data: result });
+});
+
 export const listOverdueAssignments = asyncHandler(async (req, res) => {
   const overdue = await workflowEngineService.listOverdueAssignments();
   res.status(200).json({ success: true, message: "Overdue assignments retrieved successfully.", data: overdue });

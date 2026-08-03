@@ -11,8 +11,12 @@ import { STALE_TIME } from "../utils/queryConfig";
  * useAdminDepartmentsList -- callers read `.data` for rows, `.meta` for
  * pagination. Reused as-is by the Files list page and by dashboards (which
  * just pass a small `limit` + `sortBy: "createdAt"` for a "recent files" widget).
+ *
+ * `enabled` lets a caller skip the request entirely (e.g. the Workflow
+ * page's "Needs Routing" queue, which only applies to roles that hold
+ * FILES.REGISTER) while still satisfying the Rules of Hooks.
  */
-export const useFiles = (params = {}) => {
+export const useFiles = (params = {}, { enabled = true } = {}) => {
   const accessToken = useAuthStore((state) => state.accessToken);
 
   return useQuery({
@@ -21,7 +25,7 @@ export const useFiles = (params = {}) => {
       const { data } = await getFiles(accessToken, params);
       return data;
     },
-    enabled: Boolean(accessToken),
+    enabled: Boolean(accessToken) && enabled,
     staleTime: STALE_TIME.SHORT,
     placeholderData: keepPreviousData,
   });

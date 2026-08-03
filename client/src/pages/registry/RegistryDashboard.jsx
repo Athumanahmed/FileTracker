@@ -2,8 +2,8 @@ import { FolderOpen, Clock, CheckCircle2, AlertTriangle, Timer, FilePlus2 } from
 import useAuthStore from "../../store/authStore";
 import PageHeader from "../../components/shared/PageHeader";
 import StatCard from "../../components/shared/StatCard";
-import FileStatusPieChart from "./components/FileStatusPieChart";
-import RegistrationsTrendChart from "./components/RegistrationsTrendChart";
+import FileStatusPieChart from "../../components/reports/FileStatusPieChart";
+import RegistrationsTrendChart from "../../components/reports/RegistrationsTrendChart";
 import RecentFilesCard from "./components/RecentFilesCard";
 import RegistryQuickActionsCard from "./components/RegistryQuickActionsCard";
 import { useReportDashboardKpis } from "../../hooks/useReportDashboardKpis";

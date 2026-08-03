@@ -36,10 +36,15 @@ import ScopedUsers from "../../pages/ScopedUsers";
 import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 import Profile from "../../pages/Profile";
+import Settings from "../../pages/Settings";
+import Archive from "../../pages/Archive";
 import RegistryDashboard from "../../pages/registry/RegistryDashboard";
-import AllFiles from "../../pages/registry/AllFiles";
-import FileDetails from "../../pages/registry/FileDetails";
-import RegisterFile from "../../pages/registry/RegisterFile";
+import Files from "../../pages/Files";
+import FileDetails from "../../pages/FileDetails";
+import RegisterFile from "../../pages/RegisterFile";
+import Workflow from "../../pages/Workflow";
+import Reports from "../../pages/Reports";
+import Notifications from "../../pages/Notifications";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -74,18 +79,30 @@ const OTHER_ROLE_DASHBOARDS = [
 ];
 
 /**
- * File Lifecycle Management routes, standing in with PlaceholderPage until
- * each is built individually. Mirrors sidebarRoutes.js's item-per-role
- * set exactly -- a role only gets the nested <Route> here if it also gets
- * the matching sidebar entry, so a stray URL for a module a role can't see
- * still 403s via RoleBasedRoute rather than 404ing.
+ * File Lifecycle Management routes -- shared across every role (see
+ * pages/Files.jsx etc.'s own docstrings for why each is role-agnostic).
+ * Mirrors sidebarRoutes.js's item-per-role set exactly -- a role only gets
+ * the nested <Route> here if it also gets the matching sidebar entry, so a
+ * stray URL for a module a role can't see still 403s via RoleBasedRoute
+ * rather than 404ing. Archive Officer still gets a PlaceholderPage since
+ * its dedicated archive/retention UI isn't built yet.
  */
 const filesRoute = (
   <Route
     path="files"
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
-        <PlaceholderPage title="Files" description="File registration, Advanced Search and file detail are coming soon." />
+        <Files />
+      </RoleBasedRoute>
+    }
+  />
+);
+const fileDetailsRoute = (
+  <Route
+    path="files/:fileId"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
+        <FileDetails />
       </RoleBasedRoute>
     }
   />
@@ -95,7 +112,7 @@ const registerFileRoute = (
     path="files/new"
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_REGISTER}>
-        <PlaceholderPage title="Register File" description="The file registration form is coming soon." />
+        <RegisterFile />
       </RoleBasedRoute>
     }
   />
@@ -105,7 +122,7 @@ const workflowRoute = (
     path="workflow"
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_READ}>
-        <PlaceholderPage title="My Workflow" description="Your assignment inbox and overdue items are coming soon." />
+        <Workflow />
       </RoleBasedRoute>
     }
   />
@@ -115,7 +132,7 @@ const archiveRoute = (
     path="archive"
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.ARCHIVE_READ}>
-        <PlaceholderPage title="Archive" description="Archived files and the retention queue are coming soon." />
+        <Archive />
       </RoleBasedRoute>
     }
   />
@@ -125,19 +142,14 @@ const reportsRoute = (
     path="reports"
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.REPORTS_READ}>
-        <PlaceholderPage title="Reports" description="Dashboard KPIs, performance reports and export are coming soon." />
+        <Reports />
       </RoleBasedRoute>
     }
   />
 );
 // No dedicated permission -- every authenticated user gets a notification
 // inbox, same as the backend endpoints (no permission check beyond auth).
-const notificationsRoute = (
-  <Route
-    path="notifications"
-    element={<PlaceholderPage title="Notifications" description="Your notification inbox is coming soon." />}
-  />
-);
+const notificationsRoute = <Route path="notifications" element={<Notifications />} />;
 
 const AppRoutes = (
   <Routes>
@@ -173,11 +185,24 @@ const AppRoutes = (
         <Route index element={<Profile />} />
       </Route>
 
+      {/* /settings -- every authenticated user, any role, own account only (password + active sessions). */}
+      <Route
+        path="settings"
+        element={
+          <Protected>
+            <AppLayout />
+          </Protected>
+        }
+      >
+        <Route index element={<Settings />} />
+      </Route>
+
       {/* System Admin -- /admin, /admin/users, /admin/departments, ... */}
       <Route path="admin" element={actorShell(ROLES.SYSTEM_ADMIN)}>
         <Route index element={<AdminDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {registerFileRoute}
         {workflowRoute}
         {archiveRoute}
@@ -325,6 +350,7 @@ const AppRoutes = (
         <Route index element={<ScopedDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
         <Route
@@ -350,6 +376,7 @@ const AppRoutes = (
         <Route index element={<ScopedDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
         <Route
@@ -378,6 +405,7 @@ const AppRoutes = (
         />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
       </Route>
@@ -386,30 +414,9 @@ const AppRoutes = (
       <Route path="registry" element={actorShell(ROLES.REGISTRY)}>
         <Route index element={<RegistryDashboard />} />
         {notificationsRoute}
-        <Route
-          path="files"
-          element={
-            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
-              <AllFiles />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="files/new"
-          element={
-            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_REGISTER}>
-              <RegisterFile />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="files/:fileId"
-          element={
-            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
-              <FileDetails />
-            </RoleBasedRoute>
-          }
-        />
+        {filesRoute}
+        {fileDetailsRoute}
+        {registerFileRoute}
         {workflowRoute}
         {reportsRoute}
       </Route>
@@ -422,6 +429,7 @@ const AppRoutes = (
         />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
       </Route>
@@ -434,6 +442,7 @@ const AppRoutes = (
         />
         {notificationsRoute}
         {filesRoute}
+        {fileDetailsRoute}
         {archiveRoute}
       </Route>
 

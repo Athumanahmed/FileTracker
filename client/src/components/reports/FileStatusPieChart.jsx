@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
-import { getFileStatusMeta } from "../../../utils/fileStatusMeta";
+import { getFileStatusMeta } from "../../utils/fileStatusMeta";
 
 const Skeleton = () => (
   <div className="mt-2 flex flex-col sm:flex-row items-center gap-4 animate-pulse">

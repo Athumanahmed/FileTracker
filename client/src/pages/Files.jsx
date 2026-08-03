@@ -1,17 +1,25 @@
 import { useMemo, useState } from "react";
 import { FolderOpen, Clock, CheckCircle2, AlertTriangle, FilePlus2 } from "lucide-react";
-import PageHeader from "../../components/shared/PageHeader";
-import StatCard from "../../components/shared/StatCard";
-import DataTable from "../../components/shared/DataTable";
-import DataPagination from "../../components/shared/DataPagination";
-import FilesFilterBar from "../../components/files/FilesFilterBar";
-import { buildFileTableColumns } from "../../components/files/fileTableColumns";
-import { useFiles } from "../../hooks/useFiles";
-import { useReportDashboardKpis } from "../../hooks/useReportDashboardKpis";
+import PageHeader from "../components/shared/PageHeader";
+import StatCard from "../components/shared/StatCard";
+import DataTable from "../components/shared/DataTable";
+import DataPagination from "../components/shared/DataPagination";
+import FilesFilterBar from "../components/files/FilesFilterBar";
+import { buildFileTableColumns } from "../components/files/fileTableColumns";
+import { useFiles } from "../hooks/useFiles";
+import { useReportDashboardKpis } from "../hooks/useReportDashboardKpis";
+import useAuthStore from "../store/authStore";
+import { getDashboardHomePath } from "../utils/dashboardHome";
+import { PERMISSIONS } from "../utils/permissions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const AllFiles = () => {
+/** Shared across every role with FILES.READ -- the backend doesn't scope this list by role at all, so one page serves everyone. Only the Register button (FILES.REGISTER-gated) and breadcrumb/route prefix vary. */
+const Files = () => {
+  const user = useAuthStore((state) => state.user);
+  const basePath = getDashboardHomePath(user);
+  const canRegister = user?.permissions?.includes(PERMISSIONS.FILES_REGISTER);
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
@@ -49,7 +57,7 @@ const AllFiles = () => {
 
   const { data, isLoading, isFetching, isError, error, refetch } = useFiles(queryParams);
   const { data: kpis, isLoading: kpisLoading, isError: kpisError, refetch: refetchKpis } = useReportDashboardKpis();
-  const columns = useMemo(() => buildFileTableColumns("/registry/files"), []);
+  const columns = useMemo(() => buildFileTableColumns(`${basePath}/files`), [basePath]);
 
   const files = data?.data ?? [];
   const meta = data?.meta;
@@ -59,8 +67,8 @@ const AllFiles = () => {
       <PageHeader
         title="Files"
         description="Every file registered into the system -- search, filter and track its status."
-        breadcrumbs={[{ label: "Dashboard", to: "/registry" }, { label: "Files" }]}
-        primaryAction={{ label: "Register File", icon: FilePlus2, to: "/registry/files/new" }}
+        breadcrumbs={[{ label: "Dashboard", to: basePath }, { label: "Files" }]}
+        primaryAction={canRegister ? { label: "Register File", icon: FilePlus2, to: `${basePath}/files/new` } : undefined}
       />
 
       {kpisError ? (
@@ -131,4 +139,4 @@ const AllFiles = () => {
   );
 };
 
-export default AllFiles;
+export default Files;

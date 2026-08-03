@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { LayoutGrid, Paperclip, Workflow, FileSignature, History, QrCode } from "lucide-react";
-import PageHeader from "../../components/shared/PageHeader";
-import Tabs from "../../components/shared/Tabs";
-import Modal from "../../components/shared/Modal";
-import { getFileStatusMeta } from "../../utils/fileStatusMeta";
-import { useFileDetail } from "../../hooks/useFileDetail";
-import { useFileArchiveStatus } from "../../hooks/useFileArchiveStatus";
-import FileOverviewTab from "../../components/files/detail/FileOverviewTab";
-import FileAttachmentsTab from "../../components/files/detail/FileAttachmentsTab";
-import FileWorkflowTab from "../../components/files/detail/FileWorkflowTab";
-import FileMinutesTab from "../../components/files/detail/FileMinutesTab";
-import FileTimelineTab from "../../components/files/detail/FileTimelineTab";
-import FileQrCode from "../../components/files/FileQrCode";
+import PageHeader from "../components/shared/PageHeader";
+import Tabs from "../components/shared/Tabs";
+import Modal from "../components/shared/Modal";
+import { getFileStatusMeta } from "../utils/fileStatusMeta";
+import { useFileDetail } from "../hooks/useFileDetail";
+import { useFileArchiveStatus } from "../hooks/useFileArchiveStatus";
+import FileOverviewTab from "../components/files/detail/FileOverviewTab";
+import FileAttachmentsTab from "../components/files/detail/FileAttachmentsTab";
+import FileWorkflowTab from "../components/files/detail/FileWorkflowTab";
+import FileMinutesTab from "../components/files/detail/FileMinutesTab";
+import FileTimelineTab from "../components/files/detail/FileTimelineTab";
+import FileQrCode from "../components/files/FileQrCode";
+import useAuthStore from "../store/authStore";
+import { getDashboardHomePath } from "../utils/dashboardHome";
 
 const TABS = [
   { id: "overview", name: "Overview", icon: LayoutGrid },
@@ -21,10 +23,21 @@ const TABS = [
   { id: "minutes", name: "Minutes", icon: FileSignature },
   { id: "timeline", name: "Timeline", icon: History },
 ];
+const TAB_IDS = TABS.map((t) => t.id);
 
+/** Shared across every role -- the tabs themselves (components/files/detail/*) were already role-agnostic; only the route prefix (for breadcrumbs/back link) varies. */
 const FileDetails = () => {
   const { fileId } = useParams();
-  const [activeTab, setActiveTab] = useState("overview");
+  const user = useAuthStore((state) => state.user);
+  const basePath = getDashboardHomePath(user);
+
+  // Lets callers deep-link straight to a tab -- e.g. the Workflow page's
+  // "Start Workflow" / "View Assignment" actions navigate here with
+  // `state: { initialTab: "workflow" }` instead of always landing on
+  // Overview and making the user click through again.
+  const location = useLocation();
+  const requestedTab = location.state?.initialTab;
+  const [activeTab, setActiveTab] = useState(TAB_IDS.includes(requestedTab) ? requestedTab : "overview");
   const [showQrModal, setShowQrModal] = useState(false);
 
   const { data: file, isLoading, isError, refetch } = useFileDetail(fileId);
@@ -56,17 +69,18 @@ const FileDetails = () => {
 
   const status = getFileStatusMeta(file.status);
   const isReadOnly = Boolean(archiveStatus);
+  const filesPath = `${basePath}/files`;
 
   return (
     <div className="p-2 xl:p-4">
       <PageHeader
         title={file.title}
         description={file.fileNumber}
-        backTo="/registry/files"
+        backTo={filesPath}
         badge={{ label: status.label, tone: "blue" }}
         breadcrumbs={[
-          { label: "Dashboard", to: "/registry" },
-          { label: "Files", to: "/registry/files" },
+          { label: "Dashboard", to: basePath },
+          { label: "Files", to: filesPath },
           { label: file.fileNumber },
         ]}
         secondaryActions={[{ label: "QR Code", icon: QrCode, onClick: () => setShowQrModal(true) }]}

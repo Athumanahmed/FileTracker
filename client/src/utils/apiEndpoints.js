@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
     VERIFY_RESET_OTP: "/api/v1/auth/verify-reset-otp",
     RESEND_RESET_OTP: "/api/v1/auth/resend-reset-otp",
     RESET_PASSWORD: "/api/v1/auth/reset-password",
+    SESSIONS: "/api/v1/auth/sessions",
+    REVOKE_SESSION: (sessionId) => `/api/v1/auth/sessions/${sessionId}`,
+    LOGOUT_ALL: "/api/v1/auth/logout-all",
   },
 
   USERS: {
@@ -104,7 +107,9 @@ export const API_ENDPOINTS = {
     START: (fileId) => `/api/v1/files/${fileId}/workflow/start`,
     TRANSITION: (fileId) => `/api/v1/files/${fileId}/workflow/transition`,
     CLAIM: (fileId) => `/api/v1/files/${fileId}/workflow/claim`,
+    ELIGIBLE_TARGETS: (fileId) => `/api/v1/files/${fileId}/workflow/eligible-targets`,
     MOVEMENTS: (fileId) => `/api/v1/files/${fileId}/movements`,
+    OVERDUE: "/api/v1/workflow/overdue-assignments",
   },
 
   MINUTES: {
@@ -120,11 +125,24 @@ export const API_ENDPOINTS = {
 
   ARCHIVE: {
     STATUS_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/archive`,
+    ARCHIVE_FILE: (fileId) => `/api/v1/files/${fileId}/archive`,
+    RESTORE_FILE: (fileId) => `/api/v1/files/${fileId}/archive/restore`,
+    EXPIRED_RETENTION: "/api/v1/archive/expired-retention",
+  },
+
+  NOTIFICATIONS: {
+    LIST: "/api/v1/notifications",
+    MARK_READ: (id) => `/api/v1/notifications/${id}/read`,
+    MARK_ALL_READ: "/api/v1/notifications/read-all",
+    PREFERENCES: "/api/v1/notifications/preferences",
   },
 
   REPORTS: {
     DASHBOARD: "/api/v1/reports/dashboard",
     STATUS_DISTRIBUTION: "/api/v1/reports/charts/status-distribution",
     REGISTRATIONS_OVER_TIME: "/api/v1/reports/charts/registrations-over-time",
+    DEPARTMENT_PERFORMANCE: "/api/v1/reports/department-performance",
+    OFFICER_PERFORMANCE: "/api/v1/reports/officer-performance",
+    EXPORT: "/api/v1/reports/export",
   },
 };

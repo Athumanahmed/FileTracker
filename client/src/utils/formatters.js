@@ -13,6 +13,9 @@ export const getInitials = (name = "") =>
 /** e.g. "May 25, 2026 10:45 AM" -- absolute, not relative, for columns like Last Login. */
 export const formatDateTime = (value) => (value ? dayjs(value).format("MMM D, YYYY h:mm A") : "Never");
 
+/** Whole days between `date` and now, always >= 0 -- e.g. "waiting 3 days", "2 days overdue". */
+export const daysSince = (date) => Math.max(0, dayjs().diff(dayjs(date), "day"));
+
 /** e.g. 245000 -> "245 KB" -- attachment/version file sizes are stored in bytes. */
 export const formatFileSize = (bytes) => {
   if (!bytes && bytes !== 0) return "—";

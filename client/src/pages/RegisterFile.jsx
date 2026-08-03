@@ -5,16 +5,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { FileText, User, Paperclip, ListChecks, ChevronLeft, ChevronRight, Send, Loader2 } from "lucide-react";
-import PageHeader from "../../components/shared/PageHeader";
-import Stepper from "../../components/shared/Stepper";
-import FileDetailsStep from "../../components/files/register/FileDetailsStep";
-import CitizenStep from "../../components/files/register/CitizenStep";
-import AttachmentsStep from "../../components/files/register/AttachmentsStep";
-import ReviewStep from "../../components/files/register/ReviewStep";
-import FileRegisteredModal from "../../components/files/FileRegisteredModal";
-import { useFileCategories } from "../../hooks/useFileCategories";
-import { useDepartments } from "../../hooks/useDepartments";
-import { useCreateFile } from "../../hooks/useCreateFile";
+import PageHeader from "../components/shared/PageHeader";
+import Stepper from "../components/shared/Stepper";
+import FileDetailsStep from "../components/files/register/FileDetailsStep";
+import CitizenStep from "../components/files/register/CitizenStep";
+import AttachmentsStep from "../components/files/register/AttachmentsStep";
+import ReviewStep from "../components/files/register/ReviewStep";
+import FileRegisteredModal from "../components/files/FileRegisteredModal";
+import { useFileCategories } from "../hooks/useFileCategories";
+import { useDepartments } from "../hooks/useDepartments";
+import { useCreateFile } from "../hooks/useCreateFile";
+import useAuthStore from "../store/authStore";
+import { getDashboardHomePath } from "../utils/dashboardHome";
 
 // Mirrors server/validators/file.validation.js's registerFileValidationRules
 // field-for-field, so nothing that passes here gets rejected server-side.
@@ -106,8 +108,13 @@ const buildFormData = (values, files) => {
   return formData;
 };
 
+/** Shared by every role with FILES.REGISTER (Registry + Admin today) -- only the route prefix varies. */
 const RegisterFile = () => {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const basePath = getDashboardHomePath(user);
+  const filesPath = `${basePath}/files`;
+
   const [stepIndex, setStepIndex] = useState(0);
   const [files, setFiles] = useState([]);
   const [registeredFile, setRegisteredFile] = useState(null);
@@ -190,8 +197,8 @@ const RegisterFile = () => {
       <PageHeader
         title="Register File"
         description="Create a new file record and route it into the system."
-        breadcrumbs={[{ label: "Dashboard", to: "/registry" }, { label: "Files", to: "/registry/files" }, { label: "Register File" }]}
-        backTo="/registry/files"
+        breadcrumbs={[{ label: "Dashboard", to: basePath }, { label: "Files", to: filesPath }, { label: "Register File" }]}
+        backTo={filesPath}
       />
 
       <div className="mb-8 overflow-x-auto">
@@ -201,12 +208,10 @@ const RegisterFile = () => {
       {/*
         Deliberately no native form submission anywhere in this wizard --
         onSubmit unconditionally no-ops, and every button (including the
-        final one) is type="button" with an explicit onClick. This isn't
-        belt-and-suspenders on top of handleFormKeyDown, it replaces that
-        approach entirely: there is no code path left (Enter key, a stray
-        click landing on a relabeled button, browser implicit submission)
-        that can submit this form except the Review step's button calling
-        handleSubmit(onSubmit) directly.
+        final one) is type="button" with an explicit onClick. There is no
+        code path left (Enter key, a stray click landing on a relabeled
+        button, browser implicit submission) that can submit this form
+        except the Review step's button calling handleSubmit(onSubmit) directly.
       */}
       <form onSubmit={(e) => e.preventDefault()} noValidate className="max-w-3xl">
         <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm min-h-80">
@@ -272,7 +277,7 @@ const RegisterFile = () => {
           setRegisteredFile(null);
           resetWizard();
         }}
-        onViewFile={() => navigate(`/registry/files/${registeredFile.id}`)}
+        onViewFile={() => navigate(`${filesPath}/${registeredFile.id}`)}
       />
     </div>
   );

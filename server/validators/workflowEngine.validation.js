@@ -1,4 +1,4 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 
 const ENGINE_ACTIONS = [
   "FORWARD",
@@ -27,4 +27,9 @@ export const transitionWorkflowValidationRules = [
   body("action").trim().isIn(ENGINE_ACTIONS).withMessage(`action must be one of ${ENGINE_ACTIONS.join(", ")}`),
   body("toUserId").optional({ checkFalsy: true }).trim(),
   body("remarks").optional({ checkFalsy: true }).trim().isLength({ max: 1000 }),
+];
+
+export const eligibleTargetsValidationRules = [
+  ...fileIdParamValidationRules,
+  query("action").trim().isIn(ENGINE_ACTIONS).withMessage(`action must be one of ${ENGINE_ACTIONS.join(", ")}`),
 ];

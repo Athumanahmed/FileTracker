@@ -51,6 +51,24 @@ export const forceChangePassword = ({
     authHeader(accessToken),
   );
 
+// Voluntary "change my password" -- backend routes this to the exact same
+// handler as force-change-password (see server/routes/auth.routes.js's own
+// comment), but this is the discoverable name for a user choosing to do it
+// from Account Settings rather than being forced to on first login.
+export const changePassword = ({ accessToken, currentPassword, newPassword, confirmPassword }) =>
+  apiClient.post(
+    API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
+    { currentPassword, newPassword, confirmPassword },
+    authHeader(accessToken),
+  );
+
+export const getMySessions = (accessToken) => apiClient.get(API_ENDPOINTS.AUTH.SESSIONS, authHeader(accessToken));
+
+export const revokeSession = (accessToken, sessionId) =>
+  apiClient.delete(API_ENDPOINTS.AUTH.REVOKE_SESSION(sessionId), authHeader(accessToken));
+
+export const logoutAllDevices = (accessToken) => apiClient.post(API_ENDPOINTS.AUTH.LOGOUT_ALL, {}, authHeader(accessToken));
+
 export const forgotPassword = ({ phoneNumber }) =>
   apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { phoneNumber });
 
@@ -241,6 +259,14 @@ export const transitionFileWorkflow = (accessToken, fileId, payload) =>
 export const claimWorkflowAssignment = (accessToken, fileId) =>
   apiClient.post(API_ENDPOINTS.WORKFLOW.CLAIM(fileId), {}, authHeader(accessToken));
 
+/** { constrained, users: [{id, fullName, username, department}] } -- who the given action can actually route to, based on the relevant step's role/position requirement. */
+export const getEligibleWorkflowTargets = (accessToken, fileId, action) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW.ELIGIBLE_TARGETS(fileId), { ...authHeader(accessToken), params: { action } });
+
+/** Escalation-ready: every current assignment (any file) already past its SLA-derived due date. Not paginated -- meant to stay a short list. */
+export const getOverdueAssignments = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW.OVERDUE, authHeader(accessToken));
+
 export const getFileMovements = (accessToken, fileId, params = {}) =>
   apiClient.get(API_ENDPOINTS.WORKFLOW.MOVEMENTS(fileId), { ...authHeader(accessToken), params });
 
@@ -268,6 +294,35 @@ export const getFileTimeline = (accessToken, fileId, params = {}) =>
 export const getFileArchiveStatus = (accessToken, fileId) =>
   apiClient.get(API_ENDPOINTS.ARCHIVE.STATUS_FOR_FILE(fileId), authHeader(accessToken));
 
+export const archiveFile = (accessToken, fileId, payload) =>
+  apiClient.post(API_ENDPOINTS.ARCHIVE.ARCHIVE_FILE(fileId), payload, authHeader(accessToken));
+
+export const restoreFile = (accessToken, fileId, payload) =>
+  apiClient.post(API_ENDPOINTS.ARCHIVE.RESTORE_FILE(fileId), payload, authHeader(accessToken));
+
+/** Escalation/destruction-review queue -- every archived file already past its retention window. Not paginated -- meant to stay a short list. */
+export const getExpiredRetention = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.ARCHIVE.EXPIRED_RETENTION, authHeader(accessToken));
+
+// -- Notifications ---------------------------------------------------------------
+// Every endpoint here is self-scoped (identity from the token, no :userId) --
+// no permission gate beyond being authenticated, same as the backend.
+
+export const getMyNotifications = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.NOTIFICATIONS.LIST, { ...authHeader(accessToken), params });
+
+export const markNotificationRead = (accessToken, notificationId) =>
+  apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_READ(notificationId), {}, authHeader(accessToken));
+
+export const markAllNotificationsRead = (accessToken) =>
+  apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ, {}, authHeader(accessToken));
+
+export const getMyNotificationPreferences = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.NOTIFICATIONS.PREFERENCES, authHeader(accessToken));
+
+export const setMyNotificationPreference = (accessToken, payload) =>
+  apiClient.put(API_ENDPOINTS.NOTIFICATIONS.PREFERENCES, payload, authHeader(accessToken));
+
 // -- Reports & Dashboard (File Lifecycle Management) --------------------------
 // params.departmentId is honored for management roles (SYSTEM_ADMIN/DIRECTOR/
 // SUPERVISOR) and ignored server-side for HOD (always their own department) --
@@ -281,3 +336,13 @@ export const getStatusDistribution = (accessToken, params = {}) =>
 
 export const getRegistrationsOverTime = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.REPORTS.REGISTRATIONS_OVER_TIME, { ...authHeader(accessToken), params });
+
+export const getDepartmentPerformance = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.DEPARTMENT_PERFORMANCE, { ...authHeader(accessToken), params });
+
+export const getOfficerPerformance = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.OFFICER_PERFORMANCE, { ...authHeader(accessToken), params });
+
+/** responseType: "blob" -- returns a real file (CSV/Excel/PDF), not JSON. Caller reads Content-Disposition for the filename and triggers a browser download. */
+export const exportReport = (accessToken, params) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.EXPORT, { ...authHeader(accessToken), params, responseType: "blob" });

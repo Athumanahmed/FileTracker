@@ -548,6 +548,45 @@ export const getWorkflowStatus = async (fileId) => {
   return { instance: sanitizeInstance(instance), currentAssignment: sanitizeAssignment(currentAssignment) };
 };
 
+/**
+ * "Who can I route this to" for the Take Action picker -- resolves the
+ * relevant step for the given action (next step for FORWARD/non-final
+ * APPROVE, previous for RETURN, the current step itself for REASSIGN),
+ * then lists active users holding that step's requiredRoleId/
+ * requiredPositionId. REQUEST_INFORMATION is deliberately excluded: the
+ * engine allows it to target anyone (see transitionRequestInformation),
+ * so there's no step to narrow by -- `constrained: false` tells the
+ * caller to fall back to manual entry. Same for a genuinely permissive
+ * step (no role/position requirement at all).
+ */
+export const listEligibleTargets = async ({ fileId, action }) => {
+  const instance = await workflowInstanceRepository.findActiveByFileId(fileId);
+  if (!instance) throw new AppError(404, "This file has no active workflow");
+  if (!instance.currentStep) throw new AppError(409, "Workflow has no current step");
+
+  let targetStep;
+  if (action === "FORWARD" || action === "APPROVE") {
+    if (instance.currentStep.isFinalStep) return { constrained: false, users: [] };
+    targetStep = await workflowTemplateRepository.findStepByOrder(instance.templateId, instance.currentStep.stepOrder + 1);
+  } else if (action === "RETURN") {
+    targetStep = await workflowTemplateRepository.findStepByOrder(instance.templateId, instance.currentStep.stepOrder - 1);
+  } else if (action === "REASSIGN") {
+    targetStep = instance.currentStep;
+  } else {
+    return { constrained: false, users: [] };
+  }
+
+  if (!targetStep || (!targetStep.requiredRoleId && !targetStep.requiredPositionId)) {
+    return { constrained: false, users: [] };
+  }
+
+  const users = await authRepository.findUsersByRoleOrPosition({
+    roleId: targetStep.requiredRoleId,
+    positionId: targetStep.requiredPositionId,
+  });
+  return { constrained: true, users };
+};
+
 /** Escalation-ready: surfaces every current assignment already past its SLA-derived due date. No auto-escalation job yet -- that's a Future Improvement. */
 export const listOverdueAssignments = async () => {
   const overdue = await fileAssignmentRepository.findOverdue();

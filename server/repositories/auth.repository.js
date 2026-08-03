@@ -18,6 +18,31 @@ export const findUserByUsername = (username) =>
 
 export const findUserById = (id) => prisma.user.findUnique({ where: { id } });
 
+/**
+ * Active users holding a specific role and/or position -- powers the
+ * workflow engine's "who can I route this to" picker (see
+ * workflowEngine.service.js#listEligibleTargets). Deliberately narrow: a
+ * caller-facing list, not the admin user directory, so it returns only the
+ * fields a picker needs, and only ever active accounts.
+ */
+export const findUsersByRoleOrPosition = ({ roleId, positionId }) =>
+  prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      isActive: true,
+      deletedAt: null,
+      ...(roleId ? { roles: { some: { roleId } } } : {}),
+      ...(positionId ? { positionId } : {}),
+    },
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+      department: { select: { id: true, name: true } },
+    },
+    orderBy: { fullName: "asc" },
+  });
+
 export const incrementFailedLoginAttempts = (userId) =>
   prisma.user.update({
     where: { id: userId },

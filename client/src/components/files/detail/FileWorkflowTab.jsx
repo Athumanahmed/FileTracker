@@ -9,6 +9,7 @@ import { useWorkflowTemplatesList } from "../../../hooks/useWorkflowTemplatesLis
 import { useStartWorkflow } from "../../../hooks/useStartWorkflow";
 import { useWorkflowTransition } from "../../../hooks/useWorkflowTransition";
 import { useClaimWorkflowAssignment } from "../../../hooks/useClaimWorkflowAssignment";
+import { useEligibleWorkflowTargets } from "../../../hooks/useEligibleWorkflowTargets";
 import { useFileMovements } from "../../../hooks/useFileMovements";
 
 const ACTION_LABELS = {
@@ -146,6 +147,13 @@ const TakeActionPanel = ({ fileId, instance }) => {
   const availableActions = getAvailableActions(instance);
   const needsTarget = action && actionNeedsTarget(action, instance.currentStep);
 
+  const { data: eligibleData, isLoading: isLoadingTargets } = useEligibleWorkflowTargets(fileId, needsTarget ? action : undefined);
+  const isConstrained = Boolean(eligibleData?.constrained);
+  const userOptions = (eligibleData?.users ?? []).map((u) => ({
+    value: u.id,
+    label: `${u.fullName} — ${u.department?.name ?? "No Department"}`,
+  }));
+
   const handleActionChange = (value) => {
     setAction(value);
     setToUserId("");
@@ -191,15 +199,34 @@ const TakeActionPanel = ({ fileId, instance }) => {
         options={availableActions.map((a) => ({ value: a, label: ACTION_LABELS[a] }))}
       />
 
-      {needsTarget && (
+      {needsTarget && isLoadingTargets && (
+        <BaseInput as="select" label="User" name="toUserId" value="" onChange={() => {}} placeholder="Loading eligible users..." options={[]} disabled />
+      )}
+
+      {needsTarget && !isLoadingTargets && isConstrained && (
         <BaseInput
-          label="Target User ID"
+          as="select"
+          label="User"
+          name="toUserId"
+          required
+          value={toUserId}
+          onChange={(_, value) => setToUserId(value)}
+          placeholder={userOptions.length ? "Select a user" : "No eligible users found"}
+          options={userOptions}
+          disabled={!userOptions.length}
+          helperText={userOptions.length ? undefined : "Nobody currently holds the role this step requires."}
+        />
+      )}
+
+      {needsTarget && !isLoadingTargets && !isConstrained && (
+        <BaseInput
+          label="User"
           name="toUserId"
           required
           value={toUserId}
           onChange={(_, value) => setToUserId(value)}
           placeholder="User ID to route this to"
-          helperText="A person picker is coming soon -- paste the exact user ID for now."
+          helperText="This action isn't limited to a specific role -- enter the exact user ID."
         />
       )}
 

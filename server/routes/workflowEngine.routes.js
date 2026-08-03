@@ -6,6 +6,7 @@ import { validateRequest } from "../middlewares/validation.js";
 import {
   startWorkflowValidationRules,
   transitionWorkflowValidationRules,
+  eligibleTargetsValidationRules,
   fileIdParamValidationRules,
 } from "../validators/workflowEngine.validation.js";
 
@@ -19,6 +20,15 @@ router.get(
   fileIdParamValidationRules,
   validateRequest,
   workflowEngineController.getWorkflowStatus,
+);
+
+router.get(
+  "/eligible-targets",
+  authenticate,
+  authorize("WORKFLOW.READ"),
+  eligibleTargetsValidationRules,
+  validateRequest,
+  workflowEngineController.getEligibleTargets,
 );
 
 router.post(
