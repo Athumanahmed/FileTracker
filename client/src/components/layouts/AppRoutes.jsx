@@ -39,6 +39,7 @@ import Profile from "../../pages/Profile";
 import RegistryDashboard from "../../pages/registry/RegistryDashboard";
 import AllFiles from "../../pages/registry/AllFiles";
 import FileDetails from "../../pages/registry/FileDetails";
+import RegisterFile from "../../pages/registry/RegisterFile";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -394,6 +395,14 @@ const AppRoutes = (
           }
         />
         <Route
+          path="files/new"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_REGISTER}>
+              <RegisterFile />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
           path="files/:fileId"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
@@ -401,7 +410,6 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
-        {registerFileRoute}
         {workflowRoute}
         {reportsRoute}
       </Route>

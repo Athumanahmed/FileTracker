@@ -74,6 +74,9 @@ const REGISTRY_PERMISSIONS = [
   "FILES.REGISTER",
   "FILES.READ",
   "FILE_CATEGORIES.READ",
+  // The registration form's Department dropdown -- read-only, no org
+  // management access (creating/editing departments stays admin-only).
+  "DEPARTMENTS.READ",
   "ATTACHMENTS.CREATE",
   "ATTACHMENTS.READ",
   "ATTACHMENTS.DOWNLOAD",

@@ -82,6 +82,10 @@ export const API_ENDPOINTS = {
     DETAIL: (fileId) => `/api/v1/files/${fileId}`,
   },
 
+  FILE_CATEGORIES: {
+    LIST: "/api/v1/file-categories",
+  },
+
   ATTACHMENTS: {
     LIST_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/attachments`,
     UPLOAD_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/attachments`,

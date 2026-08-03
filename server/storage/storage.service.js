@@ -76,16 +76,25 @@ const assertValidFile = ({ mimeType, size }) => {
 };
 
 /**
- * `<uuid>/<sanitized-original-name>` -- the UUID prefix guarantees
- * collision-free object keys (required by requirement "Unique Object
- * Naming") while keeping the human-readable name and extension intact
- * for the eventual download filename.
+ * `<year>/<month>/<uuid>-<sanitized-original-name>` -- date-based prefixes
+ * keep the bucket human-browsable in the MinIO console (folders read as
+ * "2026/08/" instead of a wall of opaque UUIDs), while the UUID prefix on
+ * the object itself still guarantees collision-free keys (required by
+ * "Unique Object Naming") and the readable name/extension stay intact for
+ * the eventual download filename. Deliberately date-based rather than
+ * category/department-based -- this module is provider-agnostic and
+ * context-free by design (see the module docstring), so foldering by a
+ * business concept it has no knowledge of would leak that boundary; upload
+ * date is the one dimension every caller already has for free.
  */
 const generateObjectKey = (originalFileName) => {
   const ext = path.extname(originalFileName);
   const base = path.basename(originalFileName, ext);
   const safeBase = base.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "file";
-  return `${randomUUID()}/${safeBase}${ext}`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}/${month}/${randomUUID()}-${safeBase}${ext}`;
 };
 
 const computeChecksum = (buffer) => createHash("sha256").update(buffer).digest("hex");

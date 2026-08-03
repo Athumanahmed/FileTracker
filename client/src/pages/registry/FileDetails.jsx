@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { LayoutGrid, Paperclip, Workflow, FileSignature, History } from "lucide-react";
+import { LayoutGrid, Paperclip, Workflow, FileSignature, History, QrCode } from "lucide-react";
 import PageHeader from "../../components/shared/PageHeader";
 import Tabs from "../../components/shared/Tabs";
+import Modal from "../../components/shared/Modal";
 import { getFileStatusMeta } from "../../utils/fileStatusMeta";
 import { useFileDetail } from "../../hooks/useFileDetail";
 import { useFileArchiveStatus } from "../../hooks/useFileArchiveStatus";
@@ -11,6 +12,7 @@ import FileAttachmentsTab from "../../components/files/detail/FileAttachmentsTab
 import FileWorkflowTab from "../../components/files/detail/FileWorkflowTab";
 import FileMinutesTab from "../../components/files/detail/FileMinutesTab";
 import FileTimelineTab from "../../components/files/detail/FileTimelineTab";
+import FileQrCode from "../../components/files/FileQrCode";
 
 const TABS = [
   { id: "overview", name: "Overview", icon: LayoutGrid },
@@ -23,6 +25,7 @@ const TABS = [
 const FileDetails = () => {
   const { fileId } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const { data: file, isLoading, isError, refetch } = useFileDetail(fileId);
   const { data: archiveStatus } = useFileArchiveStatus(fileId);
@@ -66,6 +69,7 @@ const FileDetails = () => {
           { label: "Files", to: "/registry/files" },
           { label: file.fileNumber },
         ]}
+        secondaryActions={[{ label: "QR Code", icon: QrCode, onClick: () => setShowQrModal(true) }]}
         divider={false}
       >
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={TABS} />
@@ -78,6 +82,10 @@ const FileDetails = () => {
         {activeTab === "minutes" && <FileMinutesTab fileId={fileId} readOnly={isReadOnly} />}
         {activeTab === "timeline" && <FileTimelineTab fileId={fileId} />}
       </div>
+
+      <Modal isOpen={showQrModal} onClose={() => setShowQrModal(false)} title="File QR Label" description={file.fileNumber} size="sm">
+        <FileQrCode file={file} />
+      </Modal>
     </div>
   );
 };

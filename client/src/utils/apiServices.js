@@ -6,6 +6,23 @@ const authHeader = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });
 
+/**
+ * For multipart/form-data requests specifically. apiClient sets a hardcoded
+ * instance-level default of "Content-Type: application/json" (see
+ * apiClient.js) -- axios's transformRequest checks that header, not the
+ * body's actual type, so without this override it silently JSON-stringifies
+ * the FormData instead of sending it as multipart (every File collapses to
+ * "{}", since JSON.stringify(File) has no own enumerable properties to
+ * serialize -- no error, just empty attachments server-side). Explicitly
+ * unsetting Content-Type is the axios-documented fix (see
+ * node_modules/axios/lib/helpers/resolveConfig.js's own
+ * `headers.setContentType(undefined)` for the same scenario) -- it lets the
+ * browser generate the correct "multipart/form-data; boundary=..." itself.
+ */
+const multipartAuthHeader = (token) => ({
+  headers: { Authorization: `Bearer ${token}`, "Content-Type": undefined },
+});
+
 export const loginUser = ({ username, password }) =>
   apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { username, password });
 
@@ -172,6 +189,14 @@ export const getFiles = (accessToken, params = {}) =>
 export const getFileById = (accessToken, fileId) =>
   apiClient.get(API_ENDPOINTS.FILES.DETAIL(fileId), authHeader(accessToken));
 
+export const createFile = (accessToken, formData) =>
+  apiClient.post(API_ENDPOINTS.FILES.CREATE, formData, multipartAuthHeader(accessToken));
+
+// -- File Categories (lookup) ---------------------------------------------------
+
+export const getFileCategories = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.FILE_CATEGORIES.LIST, authHeader(accessToken));
+
 // -- Attachments ---------------------------------------------------------------
 // Uploads pass a FormData body -- axios detects it and lets the browser set
 // the multipart boundary itself, overriding apiClient's JSON default
@@ -182,10 +207,10 @@ export const getFileAttachments = (accessToken, fileId) =>
   apiClient.get(API_ENDPOINTS.ATTACHMENTS.LIST_FOR_FILE(fileId), authHeader(accessToken));
 
 export const uploadAttachment = (accessToken, fileId, formData) =>
-  apiClient.post(API_ENDPOINTS.ATTACHMENTS.UPLOAD_FOR_FILE(fileId), formData, authHeader(accessToken));
+  apiClient.post(API_ENDPOINTS.ATTACHMENTS.UPLOAD_FOR_FILE(fileId), formData, multipartAuthHeader(accessToken));
 
 export const replaceAttachment = (accessToken, attachmentId, formData) =>
-  apiClient.post(API_ENDPOINTS.ATTACHMENTS.REPLACE(attachmentId), formData, authHeader(accessToken));
+  apiClient.post(API_ENDPOINTS.ATTACHMENTS.REPLACE(attachmentId), formData, multipartAuthHeader(accessToken));
 
 export const deleteAttachment = (accessToken, attachmentId) =>
   apiClient.delete(API_ENDPOINTS.ATTACHMENTS.DELETE(attachmentId), authHeader(accessToken));
@@ -225,10 +250,10 @@ export const getFileMinutes = (accessToken, fileId) =>
   apiClient.get(API_ENDPOINTS.MINUTES.LIST_FOR_FILE(fileId), authHeader(accessToken));
 
 export const createFileMinute = (accessToken, fileId, formData) =>
-  apiClient.post(API_ENDPOINTS.MINUTES.CREATE_FOR_FILE(fileId), formData, authHeader(accessToken));
+  apiClient.post(API_ENDPOINTS.MINUTES.CREATE_FOR_FILE(fileId), formData, multipartAuthHeader(accessToken));
 
 export const replyToMinute = (accessToken, minuteId, formData) =>
-  apiClient.post(API_ENDPOINTS.MINUTES.REPLY(minuteId), formData, authHeader(accessToken));
+  apiClient.post(API_ENDPOINTS.MINUTES.REPLY(minuteId), formData, multipartAuthHeader(accessToken));
 
 export const deleteMinute = (accessToken, minuteId) =>
   apiClient.delete(API_ENDPOINTS.MINUTES.DELETE(minuteId), authHeader(accessToken));
