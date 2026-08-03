@@ -72,4 +72,18 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/role-permissions",
     SYNC: "/api/v1/role-permissions/sync",
   },
+
+  // File Lifecycle Management -- see server/routes/file.routes.js and
+  // server/routes/report.routes.js. Only the endpoints wired so far are
+  // listed; extend this block as each module's UI is built.
+  FILES: {
+    LIST: "/api/v1/files",
+    DETAIL: (fileId) => `/api/v1/files/${fileId}`,
+  },
+
+  REPORTS: {
+    DASHBOARD: "/api/v1/reports/dashboard",
+    STATUS_DISTRIBUTION: "/api/v1/reports/charts/status-distribution",
+    REGISTRATIONS_OVER_TIME: "/api/v1/reports/charts/registrations-over-time",
+  },
 };

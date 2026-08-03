@@ -163,3 +163,25 @@ export const getScopedRecentActivity = (accessToken, limit = 10) =>
     ...authHeader(accessToken),
     params: { limit },
   });
+
+// -- Files (File Lifecycle Management) ---------------------------------------
+
+export const getFiles = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.FILES.LIST, { ...authHeader(accessToken), params });
+
+export const getFileById = (accessToken, fileId) =>
+  apiClient.get(API_ENDPOINTS.FILES.DETAIL(fileId), authHeader(accessToken));
+
+// -- Reports & Dashboard (File Lifecycle Management) --------------------------
+// params.departmentId is honored for management roles (SYSTEM_ADMIN/DIRECTOR/
+// SUPERVISOR) and ignored server-side for HOD (always their own department) --
+// see server/services/report.service.js#resolveScopedDepartmentId.
+
+export const getReportDashboardKpis = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.DASHBOARD, { ...authHeader(accessToken), params });
+
+export const getStatusDistribution = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.STATUS_DISTRIBUTION, { ...authHeader(accessToken), params });
+
+export const getRegistrationsOverTime = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.REPORTS.REGISTRATIONS_OVER_TIME, { ...authHeader(accessToken), params });

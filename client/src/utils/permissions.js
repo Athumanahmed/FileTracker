@@ -30,4 +30,18 @@ export const PERMISSIONS = {
   USERS_CREATE_ARCHIVE: "USERS.CREATE.ARCHIVE",
   USERS_CREATE_ICT_ADMIN: "USERS.CREATE.ICT_ADMIN",
   USERS_CREATE_SUPER_ADMIN: "USERS.CREATE.SUPER_ADMIN",
+
+  // File Lifecycle Management -- mirrors the module built across the
+  // backend's Phase 0-11 roadmap. FILES_REGISTER gates the "Register
+  // File" action only (reached via a button on the Files page, not its
+  // own sidebar entry); FILES_READ gates the Files list/detail branch
+  // itself, which every workflow-assignee role holds.
+  FILES_REGISTER: "FILES.REGISTER",
+  FILES_READ: "FILES.READ",
+  WORKFLOW_TEMPLATES_READ: "WORKFLOW_TEMPLATES.READ",
+  WORKFLOW_READ: "WORKFLOW.READ",
+  WORKFLOW_MANAGE: "WORKFLOW.MANAGE",
+  ARCHIVE_READ: "ARCHIVE.READ",
+  ARCHIVE_MANAGE: "ARCHIVE.MANAGE",
+  REPORTS_READ: "REPORTS.READ",
 };

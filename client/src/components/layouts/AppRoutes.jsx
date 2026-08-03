@@ -36,6 +36,7 @@ import ScopedUsers from "../../pages/ScopedUsers";
 import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 import Profile from "../../pages/Profile";
+import RegistryDashboard from "../../pages/registry/RegistryDashboard";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -58,20 +59,82 @@ const actorShell = (role) => (
   </Protected>
 );
 
-// System Admin, HOD, and Supervisor have structured module trees --
-// everything else gets a placeholder index page until its own routes are
-// built, same as sidebarRoutes.js.
+// ICT_ADMIN holds no File Management (or any other) permissions yet -- a
+// pre-existing gap outside this module's scope -- so it's the only role
+// still left on the placeholder-index-only path.
 const OTHER_ROLE_DASHBOARDS = [
-  { role: ROLES.DIRECTOR, path: "director", title: "Director Dashboard" },
-  { role: ROLES.REGISTRY, path: "registry", title: "Registry Dashboard" },
-  { role: ROLES.OFFICER, path: "officer", title: "Officer Dashboard" },
-  { role: ROLES.ARCHIVE, path: "archive", title: "Archive Dashboard" },
   {
     role: ROLES.ICT_ADMIN,
     path: "ict-admin",
     title: "ICT Administration Dashboard",
   },
 ];
+
+/**
+ * File Lifecycle Management routes, standing in with PlaceholderPage until
+ * each is built individually. Mirrors sidebarRoutes.js's item-per-role
+ * set exactly -- a role only gets the nested <Route> here if it also gets
+ * the matching sidebar entry, so a stray URL for a module a role can't see
+ * still 403s via RoleBasedRoute rather than 404ing.
+ */
+const filesRoute = (
+  <Route
+    path="files"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
+        <PlaceholderPage title="Files" description="File registration, Advanced Search and file detail are coming soon." />
+      </RoleBasedRoute>
+    }
+  />
+);
+const registerFileRoute = (
+  <Route
+    path="files/new"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_REGISTER}>
+        <PlaceholderPage title="Register File" description="The file registration form is coming soon." />
+      </RoleBasedRoute>
+    }
+  />
+);
+const workflowRoute = (
+  <Route
+    path="workflow"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_READ}>
+        <PlaceholderPage title="My Workflow" description="Your assignment inbox and overdue items are coming soon." />
+      </RoleBasedRoute>
+    }
+  />
+);
+const archiveRoute = (
+  <Route
+    path="archive"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.ARCHIVE_READ}>
+        <PlaceholderPage title="Archive" description="Archived files and the retention queue are coming soon." />
+      </RoleBasedRoute>
+    }
+  />
+);
+const reportsRoute = (
+  <Route
+    path="reports"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.REPORTS_READ}>
+        <PlaceholderPage title="Reports" description="Dashboard KPIs, performance reports and export are coming soon." />
+      </RoleBasedRoute>
+    }
+  />
+);
+// No dedicated permission -- every authenticated user gets a notification
+// inbox, same as the backend endpoints (no permission check beyond auth).
+const notificationsRoute = (
+  <Route
+    path="notifications"
+    element={<PlaceholderPage title="Notifications" description="Your notification inbox is coming soon." />}
+  />
+);
 
 const AppRoutes = (
   <Routes>
@@ -110,6 +173,12 @@ const AppRoutes = (
       {/* System Admin -- /admin, /admin/users, /admin/departments, ... */}
       <Route path="admin" element={actorShell(ROLES.SYSTEM_ADMIN)}>
         <Route index element={<AdminDashboard />} />
+        {notificationsRoute}
+        {filesRoute}
+        {registerFileRoute}
+        {workflowRoute}
+        {archiveRoute}
+        {reportsRoute}
         <Route
           path="users"
           element={
@@ -217,6 +286,14 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+        <Route
+          path="workflow-templates"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_TEMPLATES_READ}>
+              <PlaceholderPage title="Workflow Templates" description="Workflow template and step configuration are coming soon." />
+            </RoleBasedRoute>
+          }
+        />
         {/* No dedicated backend permission for these two yet -- the parent
             SYSTEM_ADMIN role guard above is the only gate, same as the
             admin index route. */}
@@ -243,6 +320,10 @@ const AppRoutes = (
       {/* Head of Department -- /hod, /hod/users, /hod/create-supervisor. */}
       <Route path="hod" element={actorShell(ROLES.HOD)}>
         <Route index element={<ScopedDashboard />} />
+        {notificationsRoute}
+        {filesRoute}
+        {workflowRoute}
+        {reportsRoute}
         <Route
           path="users"
           element={
@@ -264,6 +345,10 @@ const AppRoutes = (
       {/* Supervisor -- /supervisor, /supervisor/users, /supervisor/create-officer. */}
       <Route path="supervisor" element={actorShell(ROLES.SUPERVISOR)}>
         <Route index element={<ScopedDashboard />} />
+        {notificationsRoute}
+        {filesRoute}
+        {workflowRoute}
+        {reportsRoute}
         <Route
           path="users"
           element={
@@ -280,6 +365,51 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+      </Route>
+
+      {/* Director -- /director, /director/files, /director/workflow, /director/reports. */}
+      <Route path="director" element={actorShell(ROLES.DIRECTOR)}>
+        <Route
+          index
+          element={<PlaceholderPage title="Director Dashboard" description="Your dashboard is being tailored for your role." />}
+        />
+        {notificationsRoute}
+        {filesRoute}
+        {workflowRoute}
+        {reportsRoute}
+      </Route>
+
+      {/* Registry -- /registry, /registry/files, /registry/files/new, /registry/workflow, /registry/reports. */}
+      <Route path="registry" element={actorShell(ROLES.REGISTRY)}>
+        <Route index element={<RegistryDashboard />} />
+        {notificationsRoute}
+        {filesRoute}
+        {registerFileRoute}
+        {workflowRoute}
+        {reportsRoute}
+      </Route>
+
+      {/* Officer -- /officer, /officer/files, /officer/workflow, /officer/reports. */}
+      <Route path="officer" element={actorShell(ROLES.OFFICER)}>
+        <Route
+          index
+          element={<PlaceholderPage title="Officer Dashboard" description="Your dashboard is being tailored for your role." />}
+        />
+        {notificationsRoute}
+        {filesRoute}
+        {workflowRoute}
+        {reportsRoute}
+      </Route>
+
+      {/* Archive Officer -- /archive, /archive/files, /archive/archive. No Workflow/Reports: not granted to this role. */}
+      <Route path="archive" element={actorShell(ROLES.ARCHIVE)}>
+        <Route
+          index
+          element={<PlaceholderPage title="Archive Dashboard" description="Your dashboard is being tailored for your role." />}
+        />
+        {notificationsRoute}
+        {filesRoute}
+        {archiveRoute}
       </Route>
 
       {/* Every other actor -- own top-level branch, structured one at a time. */}
