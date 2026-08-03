@@ -15,6 +15,25 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: FileTracker-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: fileTrackerMinioAdmin
+      MINIO_ROOT_PASSWORD: FileTracker-Minio-@2026
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./server
@@ -25,8 +44,15 @@ services:
       - ./server/.env
     environment:
       DATABASE_URL: postgresql://postgres:FileTracker-@2026@db:5432/FileTrackerDB?schema=public
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: fileTrackerMinioAdmin
+      MINIO_SECRET_KEY: FileTracker-Minio-@2026
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     ports:
       - "5051:5051"
@@ -44,3 +70,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

@@ -6,6 +6,7 @@ import { seedRolePermissions } from "./seeds/seedRolePermissions.js";
 import { seedDepartments } from "./seeds/seedDepartments.js";
 import { seedUnits } from "./seeds/seedUnits.js";
 import { seedPositions } from "./seeds/seedPositions.js";
+import { seedFileCategories } from "./seeds/seedFileCategories.js";
 import { seedAdmin } from "./seeds/seedAdmin.js";
 
 async function main() {
@@ -21,6 +22,8 @@ async function main() {
   await seedDepartments(prisma);
   await seedUnits(prisma);
   await seedPositions(prisma);
+
+  await seedFileCategories(prisma);
 
   await seedAdmin(prisma);
 

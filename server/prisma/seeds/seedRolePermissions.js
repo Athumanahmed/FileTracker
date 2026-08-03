@@ -62,18 +62,92 @@ const ACCOUNT_MANAGEMENT_PERMISSIONS = [
  */
 const SCOPED_READ_PERMISSIONS = ["USERS.READ", "DASHBOARD.READ_SCOPED_SUMMARY", "ROLES.READ"];
 
+/**
+ * File Registration (Phase 2) is Registry-Officer-only by design --
+ * SYSTEM_ADMIN also holds these via the blanket grant below, kept as a
+ * system-wide override, not a second "normal" way to register a file.
+ * Registry also drives the workflow engine (Phase 4): they route a newly
+ * registered file into its workflow and can act on it like anyone else
+ * it's assigned to.
+ */
+const REGISTRY_PERMISSIONS = [
+  "FILES.REGISTER",
+  "FILES.READ",
+  "FILE_CATEGORIES.READ",
+  "ATTACHMENTS.CREATE",
+  "ATTACHMENTS.READ",
+  "ATTACHMENTS.DOWNLOAD",
+  "ATTACHMENTS.UPDATE",
+  "ATTACHMENTS.DELETE",
+  "WORKFLOW.MANAGE",
+  "WORKFLOW.READ",
+  "MINUTES.CREATE",
+  "MINUTES.READ",
+  "MINUTES.DELETE",
+  "TIMELINE.READ",
+  "ARCHIVE.READ",
+  "REPORTS.READ",
+];
+
+/**
+ * Any role a file's workflow can actually assign to (Phase 4) needs
+ * enough access to see and act on what's been routed to them -- read the
+ * file, its attachments, its minutes, and its timeline; drive the
+ * workflow engine (forward/return/reassign/hold/resume/claim); and
+ * record/attach their own minutes (Phase 5) -- an Officer writing a
+ * decision routinely needs to attach supporting evidence to it, so
+ * ATTACHMENTS.CREATE is granted here too. Replacing/deleting an
+ * *existing* attachment stays Registry-only -- more sensitive than
+ * adding a new one.
+ */
+const WORKFLOW_ASSIGNEE_PERMISSIONS = [
+  "FILES.READ",
+  "ATTACHMENTS.CREATE",
+  "ATTACHMENTS.READ",
+  "ATTACHMENTS.DOWNLOAD",
+  "WORKFLOW.MANAGE",
+  "WORKFLOW.READ",
+  "MINUTES.CREATE",
+  "MINUTES.READ",
+  "MINUTES.DELETE",
+  "TIMELINE.READ",
+  "ARCHIVE.READ",
+  "REPORTS.READ",
+];
+
+/**
+ * Archive/retention management (Phase 10) is a real specialization, not
+ * the usual "whoever can act on a file" access reality -- only the
+ * Archive Officer role manages it. FILES.READ + TIMELINE.READ are needed
+ * just to find and review a file before archiving it; ARCHIVE.MANAGE is
+ * the actual archive/restore capability.
+ */
+const ARCHIVE_OFFICER_PERMISSIONS = ["FILES.READ", "TIMELINE.READ", "ARCHIVE.MANAGE", "ARCHIVE.READ"];
+
 const EXPLICIT_ROLE_PERMISSIONS = {
+  // The Municipal Director sits above HOD in the routing chain (Registry ->
+  // Director -> HOD -> Supervisor -> Officer), so -- unlike the original
+  // "reports only" design -- Director now also holds the same operational
+  // workflow-assignee permissions as HOD/Supervisor/Officer, on top of its
+  // global, unscoped reporting oversight (report.service.js only
+  // department-scopes HOD, so DIRECTOR sees every department by default).
+  DIRECTOR: ["REPORTS.READ", ...WORKFLOW_ASSIGNEE_PERMISSIONS],
   HOD: [
     "USERS.CREATE.SUPERVISOR",
     "UNITS.READ",
     ...SCOPED_READ_PERMISSIONS,
     ...ACCOUNT_MANAGEMENT_PERMISSIONS,
+    ...WORKFLOW_ASSIGNEE_PERMISSIONS,
   ],
   SUPERVISOR: [
     "USERS.CREATE.OFFICER",
     ...SCOPED_READ_PERMISSIONS,
     ...ACCOUNT_MANAGEMENT_PERMISSIONS,
+    ...WORKFLOW_ASSIGNEE_PERMISSIONS,
   ],
+  OFFICER: [...WORKFLOW_ASSIGNEE_PERMISSIONS],
+  REGISTRY: [...REGISTRY_PERMISSIONS],
+  ARCHIVE: [...ARCHIVE_OFFICER_PERMISSIONS],
 };
 
 export async function seedRolePermissions() {

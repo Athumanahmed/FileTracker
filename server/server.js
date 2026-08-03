@@ -16,8 +16,32 @@ import roleRoutes from "./routes/role.routes.js";
 import rolePermissionRoutes from "./routes/rolePermission.routes.js";
 import adminUserRoutes from "./routes/adminUser.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import storageRoutes from "./storage/storage.routes.js";
+import { ensureBuckets } from "./storage/storage.service.js";
+import fileRoutes from "./routes/file.routes.js";
+import fileCategoryRoutes from "./routes/fileCategory.routes.js";
+import attachmentRoutes from "./routes/attachment.routes.js";
+import workflowTemplateRoutes from "./routes/workflowTemplate.routes.js";
+import workflowRoutes from "./routes/workflow.routes.js";
+import minuteRoutes from "./routes/minute.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import searchRoutes from "./routes/search.routes.js";
+import archiveRoutes from "./routes/archive.routes.js";
+import reportRoutes from "./routes/report.routes.js";
+import { registerTimelineSubscriber } from "./services/timelineEvent.subscriber.js";
+import { registerNotificationSubscriber } from "./services/notification.service.js";
+import { registerNotificationQueueCron } from "./services/notificationQueue.cron.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
+
+// Domain-event subscribers (Event-Driven Architecture) -- registered once
+// at boot, independent of any route. Workflow actions publish; Timeline
+// and Notifications both react independently. Reports (Phase 11) reads
+// data on demand rather than subscribing -- there's no "report state" to
+// keep in sync, just live aggregation at request time.
+registerTimelineSubscriber();
+registerNotificationSubscriber();
+registerNotificationQueueCron();
 
 // variables
 const app = express();
@@ -62,10 +86,30 @@ app.use("/api/v1/roles", roleRoutes);
 app.use("/api/v1/role-permissions", rolePermissionRoutes);
 app.use("/api/v1/admin/users", adminUserRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/storage", storageRoutes);
+app.use("/api/v1/files", fileRoutes);
+app.use("/api/v1/file-categories", fileCategoryRoutes);
+app.use("/api/v1/attachments", attachmentRoutes);
+app.use("/api/v1/workflow-templates", workflowTemplateRoutes);
+app.use("/api/v1/workflow", workflowRoutes);
+app.use("/api/v1/minutes", minuteRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/search", searchRoutes);
+app.use("/api/v1/archive", archiveRoutes);
+app.use("/api/v1/reports", reportRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}...`.bgYellow);
+
+  // Non-fatal: the Storage Module stays independent, so a MinIO outage at
+  // boot must not block the rest of the API from starting.
+  try {
+    await ensureBuckets();
+    console.log("MinIO storage buckets verified.".green);
+  } catch (err) {
+    console.error("MinIO bucket initialization failed:".red, err.message);
+  }
 });

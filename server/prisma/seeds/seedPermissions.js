@@ -107,6 +107,74 @@ export async function seedPermissions() {
       name: "View Own Department/Unit Dashboard Summary",
       module: "DASHBOARD",
     },
+
+    // Storage -- generic object storage endpoints (Phase 1). No business
+    // module consumes these directly yet (Attachments lands in Phase 3),
+    // so only SYSTEM_ADMIN holds them via the blanket grant in
+    // seedRolePermissions.js; scoped roles will be granted a narrower
+    // subset once a real upload UI exists.
+    { code: "STORAGE.UPLOAD", name: "Upload Storage Object", module: "STORAGE" },
+    { code: "STORAGE.READ", name: "View Storage Object Metadata", module: "STORAGE" },
+    { code: "STORAGE.DOWNLOAD", name: "Download Storage Object", module: "STORAGE" },
+    { code: "STORAGE.DELETE", name: "Delete Storage Object", module: "STORAGE" },
+
+    // Files -- registration stays Registry-only (Phase 2's explicit rule).
+    // FILES.READ is now also granted to HOD/SUPERVISOR/OFFICER (Phase 4) --
+    // once the workflow engine can assign a file to them, they need to be
+    // able to see it.
+    { code: "FILES.REGISTER", name: "Register New File", module: "FILE_TRACKING" },
+    { code: "FILES.READ", name: "View Files", module: "FILE_TRACKING" },
+
+    // File categories -- read-only reference data in this phase; no
+    // category management UI/permissions exist yet (see Future Improvements).
+    { code: "FILE_CATEGORIES.READ", name: "View File Categories", module: "FILE_TRACKING" },
+
+    // Attachments (Phase 3). Mutation (upload/replace/delete) stays
+    // Registry-only for now; read/download extends to whoever a file can
+    // be assigned to (Phase 4), so an assignee can actually see what
+    // they've been sent.
+    { code: "ATTACHMENTS.CREATE", name: "Upload File Attachment", module: "FILE_TRACKING" },
+    { code: "ATTACHMENTS.READ", name: "View File Attachments", module: "FILE_TRACKING" },
+    { code: "ATTACHMENTS.DOWNLOAD", name: "Download/Preview File Attachment", module: "FILE_TRACKING" },
+    { code: "ATTACHMENTS.UPDATE", name: "Replace File Attachment", module: "FILE_TRACKING" },
+    { code: "ATTACHMENTS.DELETE", name: "Delete File Attachment", module: "FILE_TRACKING" },
+
+    // Workflow (Phase 4). Template/step design is an administrative,
+    // system-wide config concern (SYSTEM_ADMIN only, via the blanket
+    // grant). WORKFLOW.MANAGE/READ govern the engine itself (start a
+    // file's workflow, move it between steps, claim a queued assignment)
+    // and are held by Registry (who routes intake) and every role a file
+    // can be assigned to (HOD/SUPERVISOR/OFFICER).
+    { code: "WORKFLOW_TEMPLATES.CREATE", name: "Create Workflow Template", module: "WORKFLOW" },
+    { code: "WORKFLOW_TEMPLATES.READ", name: "View Workflow Templates", module: "WORKFLOW" },
+    { code: "WORKFLOW_TEMPLATES.UPDATE", name: "Update Workflow Template", module: "WORKFLOW" },
+    { code: "WORKFLOW_TEMPLATES.DELETE", name: "Deactivate Workflow Template", module: "WORKFLOW" },
+    { code: "WORKFLOW.MANAGE", name: "Start/Transition/Claim File Workflow", module: "WORKFLOW" },
+    { code: "WORKFLOW.READ", name: "View File Workflow Status And Movement History", module: "WORKFLOW" },
+
+    // Minutes (Phase 5) -- instructions/recommendations/approvals/decisions
+    // recorded on a file. Same access reality as everything else: whoever
+    // can hold and act on a file can write on it too.
+    { code: "MINUTES.CREATE", name: "Write File Minute", module: "FILE_TRACKING" },
+    { code: "MINUTES.READ", name: "View File Minutes (Decision History)", module: "FILE_TRACKING" },
+    { code: "MINUTES.DELETE", name: "Delete File Minute", module: "FILE_TRACKING" },
+
+    // Timeline (Phase 7) -- read-only permanent history, populated by the
+    // domain-event subscriber (registerTimelineSubscriber). Same access
+    // reality as Minutes: whoever can see a file can see its timeline.
+    { code: "TIMELINE.READ", name: "View File Timeline", module: "FILE_TRACKING" },
+
+    // Archive (Phase 10) -- a real specialization, not the usual "whoever
+    // can act on a file" access reality: only the Archive Officer role
+    // (already seeded in seedRoles.js) manages retention/archive/restore.
+    { code: "ARCHIVE.MANAGE", name: "Archive/Restore File", module: "ARCHIVE" },
+    { code: "ARCHIVE.READ", name: "View Archive Status And Retention Records", module: "ARCHIVE" },
+
+    // Reports & Dashboard (Phase 11) -- KPIs, department/officer
+    // performance, charts, and CSV/Excel/PDF export. Scoping (HOD sees
+    // only their own department, Officer sees only their own row) is
+    // enforced inside report.service.js, not by separate permission codes.
+    { code: "REPORTS.READ", name: "View Reports And Dashboard", module: "REPORTS" },
   ];
 
   for (const permission of permissions) {

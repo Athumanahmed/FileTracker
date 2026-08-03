@@ -84,6 +84,43 @@ model User {
   auditLogs         AuditLog[]
   passwordResetOtps PasswordResetOtp[]
 
+  // Electronic File Lifecycle Management module relations
+  citizensRegistered      Citizen[]
+  filesRegistered         File[]                   @relation("FilesRegistered")
+  filesDeleted            File[]                   @relation("FilesDeleted")
+  fileReferencesCreated   FileReference[]
+  fileTagsAssigned        FileTagMapping[]
+  watchedFiles            FileWatcher[]
+  lettersReceived         IncomingLetter[]
+  lettersDispatched       OutgoingLetter[]
+  attachmentsDeleted      FileAttachment[]
+  fileVersionsUploaded    FileVersion[]
+  movementsFrom           FileMovement[]           @relation("MovementsFrom")
+  movementsTo             FileMovement[]           @relation("MovementsTo")
+  assignmentsReceived     FileAssignment[]         @relation("AssignmentsAssignedTo")
+  assignmentsGiven        FileAssignment[]         @relation("AssignmentsAssignedBy")
+  workflowExecutionsDone  WorkflowExecution[]      @relation("ExecutionsPerformed")
+  workflowExecutionsFrom  WorkflowExecution[]      @relation("ExecutionsFrom")
+  workflowExecutionsTo    WorkflowExecution[]      @relation("ExecutionsTo")
+  minutesWritten          FileMinute[]             @relation("MinutesWritten")
+  minutesAddressedToMe    FileMinute[]             @relation("MinutesAddressedTo")
+  minutesDeleted          FileMinute[]             @relation("MinutesDeleted")
+  commentsAuthored        FileComment[]            @relation("CommentsAuthored")
+  commentsDeleted         FileComment[]            @relation("CommentsDeleted")
+  fileFieldChanges        FileHistory[]
+  timelineEvents          TimelineEvent[]
+  fileActivities          FileActivity[]
+  notificationsTriggered  Notification[]
+  notificationRecipients  NotificationRecipient[]
+  notificationPreferences NotificationPreference[]
+  filesArchived           ArchiveRecord[]          @relation("ArchiveArchivedBy")
+  filesRestored           ArchiveRecord[]          @relation("ArchiveRestoredBy")
+  destructionsApproved    ArchiveRecord[]          @relation("ArchiveDestructionApprovedBy")
+
+  // Storage module relations
+  storageObjectsUploaded StorageObject[] @relation("StorageObjectsUploaded")
+  storageObjectsDeleted  StorageObject[] @relation("StorageObjectsDeleted")
+
   @@index([status])
   @@index([departmentId])
   @@index([positionId])
@@ -104,6 +141,9 @@ model Role {
 
   users       UserRole[]
   permissions RolePermission[]
+
+  // Electronic File Lifecycle Management module relations
+  workflowSteps WorkflowStep[]
 }
 
 model Permission {
@@ -291,6 +331,13 @@ model Department {
   units Unit[]
   users User[]
 
+  // Electronic File Lifecycle Management module relations
+  files             File[]
+  fileAssignments   FileAssignment[]
+  movementsFrom     FileMovement[]     @relation("MovementsFromDept")
+  movementsTo       FileMovement[]     @relation("MovementsToDept")
+  workflowTemplates WorkflowTemplate[]
+
   @@unique([name])
   @@index([code])
   @@index([name])
@@ -345,6 +392,9 @@ model Position {
 
   users User[]
 
+  // Electronic File Lifecycle Management module relations
+  workflowSteps WorkflowStep[]
+
   @@unique([unitId, code])
   @@unique([unitId, title])
   @@index([unitId])
@@ -393,4 +443,1176 @@ enum SystemModule {
   REPORTS
   SETTINGS
   DASHBOARD
+  STORAGE
+  ARCHIVE
+}
+
+// =====================================================================
+// ELECTRONIC FILE LIFECYCLE MANAGEMENT MODULE
+// Phase -1: Domain & Database Design (no services/controllers yet)
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// Enums required by the module brief
+// ---------------------------------------------------------------------
+
+enum FileStatus {
+  DRAFT
+  REGISTERED
+  IN_PROGRESS
+  PENDING_ACTION
+  ON_HOLD
+  FORWARDED
+  RETURNED
+  APPROVED
+  REJECTED
+  COMPLETED
+  ARCHIVED
+  CLOSED
+}
+
+enum PriorityLevel {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum ConfidentialityLevel {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  SECRET
+  TOP_SECRET
+}
+
+// RESUME was added beyond the Phase 6 action list so a HOLD action is not
+// a dead end -- every other action already has an inverse or terminal path.
+enum WorkflowAction {
+  REGISTER
+  FORWARD
+  RETURN
+  REASSIGN
+  APPROVE
+  REJECT
+  REQUEST_INFORMATION
+  HOLD
+  RESUME
+  COMPLETE
+  ARCHIVE
+  CLOSE
+}
+
+enum WorkflowState {
+  NOT_STARTED
+  IN_PROGRESS
+  PENDING_APPROVAL
+  ON_HOLD
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum MovementStatus {
+  PENDING
+  IN_TRANSIT
+  RECEIVED
+  ACKNOWLEDGED
+  REJECTED
+}
+
+// Doubles as the canonical domain-event taxonomy: TimelineEvent.eventType
+// reuses this enum so Timeline and Notifications subscribe to the same
+// event vocabulary instead of maintaining two parallel lists.
+enum NotificationType {
+  FILE_REGISTERED
+  FILE_ASSIGNED
+  FILE_FORWARDED
+  FILE_RETURNED
+  FILE_APPROVED
+  FILE_REJECTED
+  FILE_ON_HOLD
+  FILE_RESUMED
+  FILE_COMPLETED
+  FILE_CLOSED
+  FILE_ARCHIVED
+  FILE_RESTORED
+  FILE_INFORMATION_REQUESTED
+  MINUTE_ADDED
+  COMMENT_ADDED
+  ATTACHMENT_UPLOADED
+  ATTACHMENT_REPLACED
+  ATTACHMENT_DELETED
+  DEADLINE_APPROACHING
+  DEADLINE_OVERDUE
+  SYSTEM_ALERT
+}
+
+enum NotificationChannel {
+  IN_APP
+  SMS
+  EMAIL
+  PUSH
+}
+
+enum QueueStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  DEAD_LETTER
+}
+
+enum ArchiveStatus {
+  ACTIVE
+  ARCHIVED
+  RESTORED
+  PENDING_DESTRUCTION
+  DESTROYED
+}
+
+enum AttachmentType {
+  DOCUMENT
+  IMAGE
+  SCAN
+  LETTER
+  MEMO
+  REPORT
+  CONTRACT
+  INVOICE
+  OTHER
+}
+
+enum FileSource {
+  WALK_IN
+  POST
+  EMAIL
+  FAX
+  PORTAL
+  INTERNAL
+  COURIER
+  HAND_DELIVERY
+}
+
+enum CorrespondenceType {
+  INCOMING
+  OUTGOING
+  INTERNAL
+}
+
+// ---------------------------------------------------------------------
+// Supporting enums (not explicitly requested, but required for
+// referential integrity of the requested entities)
+// ---------------------------------------------------------------------
+
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  REASSIGNED
+  CANCELLED
+}
+
+enum MinuteType {
+  INSTRUCTION
+  RECOMMENDATION
+  APPROVAL
+  REJECTION
+  NOTE
+  DECISION
+}
+
+enum CommentVisibility {
+  INTERNAL
+  DEPARTMENT
+  PUBLIC
+}
+
+enum FileReferenceType {
+  RELATED
+  DUPLICATE_OF
+  SUPERSEDES
+  SUPERSEDED_BY
+  PARENT_OF
+  CHILD_OF
+  MERGED_INTO
+}
+
+// ---------------------------------------------------------------------
+// Classification / master data
+// ---------------------------------------------------------------------
+
+model FileCategory {
+  id String @id @default(cuid())
+
+  name        String
+  code        String  @unique
+  description String?
+
+  // Self-referencing hierarchy, e.g. "Human Resources" > "Leave Applications"
+  parentId String?
+  parent   FileCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children FileCategory[] @relation("CategoryHierarchy")
+
+  // Seeds ArchiveRecord.retentionYears when a file in this category is archived
+  defaultRetentionYears Int?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  files             File[]
+  workflowTemplates WorkflowTemplate[]
+
+  @@unique([parentId, code])
+  @@index([parentId])
+  @@index([code])
+}
+
+model FileTag {
+  id String @id @default(cuid())
+
+  name  String  @unique
+  color String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  mappings FileTagMapping[]
+}
+
+model FileTagMapping {
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  tagId String
+  tag   FileTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  taggedAt   DateTime @default(now())
+  taggedById String?
+  taggedBy   User?    @relation(fields: [taggedById], references: [id])
+
+  @@id([fileId, tagId])
+  @@index([tagId])
+}
+
+// ---------------------------------------------------------------------
+// External party
+// ---------------------------------------------------------------------
+
+model Citizen {
+  id String @id @default(cuid())
+
+  citizenNumber String @unique
+
+  firstName  String
+  middleName String?
+  lastName   String
+  fullName   String?
+
+  nationalId String? @unique
+
+  phoneNumber          String?
+  alternatePhoneNumber String?
+  email                String?
+
+  physicalAddress String?
+  postalAddress   String?
+  ward            String?
+  village         String?
+  district        String?
+  region          String?
+
+  // Populated when the citizen is acting on behalf of a company/institution
+  organizationName String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registeredById String?
+  registeredBy   User?   @relation(fields: [registeredById], references: [id])
+
+  files           File[]
+  correspondences Correspondence[]
+
+  @@index([phoneNumber])
+  @@index([nationalId])
+  @@index([fullName])
+}
+
+// ---------------------------------------------------------------------
+// File aggregate root
+// ---------------------------------------------------------------------
+
+model File {
+  id String @id @default(cuid())
+
+  // Three distinct identifiers by design:
+  // fileNumber     - permanent registry file/case identifier
+  // registryNumber - the physical/electronic registry book entry number
+  // trackingNumber - short public-facing number citizens quote when tracking
+  fileNumber     String @unique
+  registryNumber String @unique
+  trackingNumber String @unique
+
+  title       String
+  description String?
+
+  categoryId String
+  category   FileCategory @relation(fields: [categoryId], references: [id])
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  citizenId String?
+  citizen   Citizen? @relation(fields: [citizenId], references: [id])
+
+  status          FileStatus           @default(DRAFT)
+  priority        PriorityLevel        @default(NORMAL)
+  confidentiality ConfidentialityLevel @default(INTERNAL)
+  source          FileSource           @default(INTERNAL)
+
+  // Immutable fact of who registered the file -- not mutable "current state",
+  // so keeping it directly on the root does not violate normalization.
+  // "Current owner" is intentionally NOT stored here: it is derived from
+  // FileAssignment (isCurrent: true) to avoid a mutable cache that can drift
+  // out of sync. See Future Improvements if read-heavy dashboards need it.
+  registeredById String?
+  registeredBy   User?   @relation("FilesRegistered", fields: [registeredById], references: [id])
+
+  dueDate  DateTime?
+  closedAt DateTime?
+
+  // Optimistic concurrency token, incremented by the service layer on
+  // every update so concurrent officer edits can be detected and rejected.
+  version Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("FilesDeleted", fields: [deletedById], references: [id])
+
+  attachments        FileAttachment[]
+  movements          FileMovement[]
+  assignments        FileAssignment[]
+  workflowInstances  WorkflowInstance[]
+  minutes            FileMinute[]
+  comments           FileComment[]
+  history            FileHistory[]
+  timelineEvents     TimelineEvent[]
+  notifications      Notification[]
+  activities         FileActivity[]
+  correspondences    Correspondence[]
+  tags               FileTagMapping[]
+  watchers           FileWatcher[]
+  archiveRecord      ArchiveRecord?
+  outgoingReferences FileReference[]    @relation("FileReferences")
+  incomingReferences FileReference[]    @relation("ReferencedByFiles")
+
+  @@index([status])
+  @@index([priority])
+  @@index([departmentId])
+  @@index([categoryId])
+  @@index([citizenId])
+  @@index([registeredById])
+  @@index([createdAt])
+  @@index([dueDate])
+  @@index([deletedAt])
+}
+
+model FileReference {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation("FileReferences", fields: [fileId], references: [id])
+
+  referencedFileId String
+  referencedFile   File   @relation("ReferencedByFiles", fields: [referencedFileId], references: [id])
+
+  referenceType FileReferenceType
+  notes         String?
+
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@unique([fileId, referencedFileId, referenceType])
+  @@index([fileId])
+  @@index([referencedFileId])
+}
+
+model FileWatcher {
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  watchedAt DateTime @default(now())
+
+  @@id([fileId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------
+// Correspondence (mail registry) -- table-per-type extension since
+// Prisma has no native inheritance. Correspondence carries the fields
+// shared by every letter; IncomingLetter/OutgoingLetter add the
+// direction-specific fields via a 1:1 extension.
+// ---------------------------------------------------------------------
+
+model Correspondence {
+  id String @id @default(cuid())
+
+  correspondenceNumber String             @unique
+  type                 CorrespondenceType
+  subject              String
+  // External reference number quoted by the sender/recipient, if any
+  referenceNumber      String?
+  correspondenceDate   DateTime
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  citizenId String?
+  citizen   Citizen? @relation(fields: [citizenId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incomingLetter IncomingLetter?
+  outgoingLetter OutgoingLetter?
+  attachments    FileAttachment[]
+
+  @@index([fileId])
+  @@index([citizenId])
+  @@index([type])
+  @@index([correspondenceDate])
+}
+
+model IncomingLetter {
+  id String @id @default(cuid())
+
+  correspondenceId String         @unique
+  correspondence   Correspondence @relation(fields: [correspondenceId], references: [id], onDelete: Cascade)
+
+  senderName         String
+  senderAddress      String?
+  senderOrganization String?
+  senderPhoneNumber  String?
+  senderEmail        String?
+
+  receivedDate DateTime
+  receivedVia  FileSource
+
+  receivedById String?
+  receivedBy   User?   @relation(fields: [receivedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receivedDate])
+}
+
+model OutgoingLetter {
+  id String @id @default(cuid())
+
+  correspondenceId String         @unique
+  correspondence   Correspondence @relation(fields: [correspondenceId], references: [id], onDelete: Cascade)
+
+  recipientName         String
+  recipientAddress      String?
+  recipientOrganization String?
+  recipientPhoneNumber  String?
+  recipientEmail        String?
+
+  dispatchDate   DateTime?
+  dispatchMethod FileSource?
+
+  dispatchedById String?
+  dispatchedBy   User?   @relation(fields: [dispatchedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dispatchDate])
+}
+
+// ---------------------------------------------------------------------
+// Attachments & versioning
+// ---------------------------------------------------------------------
+
+model FileAttachment {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  correspondenceId String?
+  correspondence   Correspondence? @relation(fields: [correspondenceId], references: [id])
+
+  minuteId String?
+  minute   FileMinute? @relation(fields: [minuteId], references: [id])
+
+  title          String
+  attachmentType AttachmentType @default(DOCUMENT)
+  description    String?
+
+  // Pointer to the version currently considered "live". Kept distinct from
+  // FileVersion.attachmentId (the full history list) -- two relations
+  // between the same two models, hence both are explicitly named.
+  currentVersionId String?      @unique
+  currentVersion   FileVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation(fields: [deletedById], references: [id])
+
+  versions FileVersion[] @relation("AttachmentVersions")
+
+  @@index([fileId])
+  @@index([correspondenceId])
+  @@index([minuteId])
+  @@index([attachmentType])
+  @@index([deletedAt])
+}
+
+// Versions are append-only and immutable: replacing a document creates a
+// new row rather than mutating an old one, which is why there is no
+// updatedAt/deletedAt here -- the audit trail is the row history itself.
+model FileVersion {
+  id String @id @default(cuid())
+
+  attachmentId String
+  attachment   FileAttachment @relation("AttachmentVersions", fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  versionNumber Int
+
+  // Storage abstraction fields only -- no module may talk to MinIO
+  // directly, everything routes through the Storage Module (Phase 0/1).
+  storageBucket    String
+  storageKey       String
+  originalFileName String
+  mimeType         String
+  fileSizeBytes    BigInt
+  checksum         String
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  currentFor FileAttachment? @relation("CurrentVersion")
+
+  @@unique([attachmentId, versionNumber])
+  @@index([attachmentId])
+  @@index([checksum])
+}
+
+// ---------------------------------------------------------------------
+// Movement & assignment
+//
+// FileMovement is the physical/electronic chain-of-custody ledger (who
+// dispatched it to whom, was it received). FileAssignment is the work-item
+// ownership record (who owns the task right now, with what deadline). Both
+// are kept because a movement is a routing event while an assignment is a
+// task -- collapsing them would lose the distinction between "sent" and
+// "responsible for acting".
+// ---------------------------------------------------------------------
+
+model FileMovement {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  fromUserId String?
+  fromUser   User?   @relation("MovementsFrom", fields: [fromUserId], references: [id])
+
+  // Nullable to mirror FileAssignment.assignedToId: a movement can route to
+  // a department queue with no specific person yet (toDepartmentId only),
+  // resolved later when someone claims it.
+  toUserId String?
+  toUser   User?   @relation("MovementsTo", fields: [toUserId], references: [id])
+
+  fromDepartmentId String?
+  fromDepartment   Department? @relation("MovementsFromDept", fields: [fromDepartmentId], references: [id])
+
+  toDepartmentId String?
+  toDepartment   Department? @relation("MovementsToDept", fields: [toDepartmentId], references: [id])
+
+  action  WorkflowAction
+  status  MovementStatus @default(PENDING)
+  remarks String?
+
+  dispatchedAt DateTime  @default(now())
+  receivedAt   DateTime?
+
+  // 1:1 link to the workflow event that caused this movement, if any
+  workflowExecutionId String?            @unique
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([toUserId])
+  @@index([fromUserId])
+  @@index([status])
+  @@index([dispatchedAt])
+}
+
+model FileAssignment {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  // Either an individual (claimed) or a department queue (unclaimed, waiting
+  // for an officer to pick it up) -- assignedToId is null for queued items.
+  assignedToId String?
+  assignedTo   User?   @relation("AssignmentsAssignedTo", fields: [assignedToId], references: [id])
+
+  assignedDepartmentId String?
+  assignedDepartment   Department? @relation(fields: [assignedDepartmentId], references: [id])
+
+  assignedById String?
+  assignedBy   User?   @relation("AssignmentsAssignedBy", fields: [assignedById], references: [id])
+
+  workflowStepId String?
+  workflowStep   WorkflowStep? @relation(fields: [workflowStepId], references: [id])
+
+  status       AssignmentStatus @default(ASSIGNED)
+  instructions String?
+  dueDate      DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  // True for the single active assignment of a file; reassigning flips the
+  // old row to false and inserts a new row, preserving assignment history.
+  isCurrent Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fileId])
+  @@index([assignedToId])
+  @@index([assignedDepartmentId])
+  @@index([status])
+  @@index([isCurrent])
+}
+
+// ---------------------------------------------------------------------
+// Workflow engine
+// ---------------------------------------------------------------------
+
+model WorkflowTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  code        String  @unique
+  description String?
+
+  categoryId String?
+  category   FileCategory? @relation(fields: [categoryId], references: [id])
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  isActive Boolean @default(true)
+  version  Int     @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps     WorkflowStep[]
+  instances WorkflowInstance[]
+
+  @@index([categoryId])
+  @@index([departmentId])
+}
+
+model WorkflowStep {
+  id String @id @default(cuid())
+
+  templateId String
+  template   WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  stepOrder   Int
+  name        String
+  description String?
+
+  requiredPositionId String?
+  requiredPosition   Position? @relation(fields: [requiredPositionId], references: [id])
+
+  requiredRoleId String?
+  requiredRole   Role?   @relation(fields: [requiredRoleId], references: [id])
+
+  slaHours Int?
+
+  isFinalStep    Boolean          @default(false)
+  allowedActions WorkflowAction[] @default([])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  currentForInstances WorkflowInstance[]
+  executions          WorkflowExecution[]
+  assignments         FileAssignment[]
+
+  @@unique([templateId, stepOrder])
+  @@index([templateId])
+}
+
+model WorkflowInstance {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  templateId String
+  template   WorkflowTemplate @relation(fields: [templateId], references: [id])
+
+  // Authoritative pointer to the active step -- this is the state machine's
+  // own state, not a cache of another table, so it is not a normalization
+  // violation the way a duplicated "current owner" would be.
+  currentStepId String?
+  currentStep   WorkflowStep? @relation(fields: [currentStepId], references: [id])
+
+  state WorkflowState @default(NOT_STARTED)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  executions WorkflowExecution[]
+
+  @@index([fileId])
+  @@index([templateId])
+  @@index([currentStepId])
+  @@index([state])
+}
+
+// Append-only audit trail of every workflow transition. Immutable by
+// design (no updatedAt/delete) -- corrections are new rows, never edits.
+model WorkflowExecution {
+  id String @id @default(cuid())
+
+  instanceId String
+  instance   WorkflowInstance @relation(fields: [instanceId], references: [id])
+
+  stepId String?
+  step   WorkflowStep? @relation(fields: [stepId], references: [id])
+
+  action WorkflowAction
+
+  performedById String
+  performedBy   User   @relation("ExecutionsPerformed", fields: [performedById], references: [id])
+
+  fromUserId String?
+  fromUser   User?   @relation("ExecutionsFrom", fields: [fromUserId], references: [id])
+
+  toUserId String?
+  toUser   User?   @relation("ExecutionsTo", fields: [toUserId], references: [id])
+
+  remarks  String?
+  metadata Json?
+
+  executedAt DateTime @default(now())
+
+  movement FileMovement?
+  minutes  FileMinute[]
+
+  @@index([instanceId])
+  @@index([stepId])
+  @@index([action])
+  @@index([performedById])
+  @@index([executedAt])
+}
+
+// ---------------------------------------------------------------------
+// Minutes & comments
+// ---------------------------------------------------------------------
+
+// Minutes are the formal, immutable instruction/decision trail on a file
+// (no updatedAt/content edit -- a correction is a new minute, never a
+// mutation, matching how physical minute sheets work).
+model FileMinute {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  parentMinuteId String?
+  parentMinute   FileMinute?  @relation("MinuteThread", fields: [parentMinuteId], references: [id])
+  replies        FileMinute[] @relation("MinuteThread")
+
+  minuteType MinuteType @default(INSTRUCTION)
+  content    String
+
+  writtenById String
+  writtenBy   User   @relation("MinutesWritten", fields: [writtenById], references: [id])
+
+  addressedToId String?
+  addressedTo   User?   @relation("MinutesAddressedTo", fields: [addressedToId], references: [id])
+
+  workflowExecutionId String?
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("MinutesDeleted", fields: [deletedById], references: [id])
+
+  attachments FileAttachment[]
+
+  @@index([fileId])
+  @@index([parentMinuteId])
+  @@index([writtenById])
+  @@index([addressedToId])
+  @@index([workflowExecutionId])
+}
+
+model FileComment {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  parentCommentId String?
+  parentComment   FileComment?  @relation("CommentThread", fields: [parentCommentId], references: [id])
+  replies         FileComment[] @relation("CommentThread")
+
+  content    String
+  visibility CommentVisibility @default(INTERNAL)
+
+  authorId String
+  author   User   @relation("CommentsAuthored", fields: [authorId], references: [id])
+
+  isEdited Boolean   @default(false)
+  editedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("CommentsDeleted", fields: [deletedById], references: [id])
+
+  @@index([fileId])
+  @@index([authorId])
+  @@index([parentCommentId])
+}
+
+// ---------------------------------------------------------------------
+// History, timeline & activity
+//
+// Three deliberately distinct logs to avoid duplicate data:
+//   FileHistory    - typed field-level before/after diffs (compliance)
+//   TimelineEvent  - human-readable narrative projection for the UI,
+//                    pointing back at its source row instead of copying it
+//   FileActivity   - access/interaction telemetry (views, downloads),
+//                    not a business event
+// File-domain field changes are recorded here, not in the system-wide
+// AuditLog, which stays scoped to identity/access/admin actions.
+// ---------------------------------------------------------------------
+
+model FileHistory {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  fieldName    String
+  oldValue     String?
+  newValue     String?
+  changeReason String?
+
+  changedById String?
+  changedBy   User?   @relation(fields: [changedById], references: [id])
+
+  changedAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([fieldName])
+  @@index([changedAt])
+}
+
+model TimelineEvent {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  eventType   NotificationType
+  title       String
+  description String?
+
+  // Points back at the row that generated this entry instead of copying
+  // its data (e.g. "FileMovement"/id, "FileMinute"/id).
+  sourceType String
+  sourceId   String?
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([fileId])
+  @@index([occurredAt])
+  @@index([sourceType, sourceId])
+}
+
+model FileActivity {
+  id String @id @default(cuid())
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // VIEW | DOWNLOAD | EXPORT | PRINT | SEARCH_HIT -- kept as a documented
+  // string rather than an enum since Phase 9 (Search) is likely to add
+  // activity kinds without needing a schema migration.
+  activityType String
+
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+
+  occurredAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([userId])
+  @@index([activityType])
+  @@index([occurredAt])
+}
+
+// ---------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------
+
+model Notification {
+  id String @id @default(cuid())
+
+  type    NotificationType
+  title   String
+  message String
+
+  fileId String?
+  file   File?   @relation(fields: [fileId], references: [id])
+
+  triggeredById String?
+  triggeredBy   User?   @relation(fields: [triggeredById], references: [id])
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  recipients NotificationRecipient[]
+
+  @@index([type])
+  @@index([fileId])
+  @@index([createdAt])
+}
+
+// One row per (notification, user, channel) delivery -- a single event can
+// fan out to many watchers across multiple channels (in-app + SMS).
+model NotificationRecipient {
+  id String @id @default(cuid())
+
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channel NotificationChannel @default(IN_APP)
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  isSent Boolean   @default(false)
+  sentAt DateTime?
+
+  deliveryStatus String?
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+
+  queueEntry NotificationQueue?
+
+  @@unique([notificationId, userId, channel])
+  @@index([userId])
+  @@index([isRead])
+  @@index([channel])
+}
+
+model NotificationPreference {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  channel NotificationChannel
+
+  isEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type, channel])
+  @@index([userId])
+}
+
+// Dispatch/retry mechanics for channels that need real asynchronous
+// delivery (SMS). IN_APP doesn't need this -- it's "delivered" simply by
+// existing as a NotificationRecipient row, so this is deliberately a 1:1
+// extension of NotificationRecipient, not a field on it.
+model NotificationQueue {
+  id String @id @default(cuid())
+
+  notificationRecipientId String                @unique
+  notificationRecipient   NotificationRecipient @relation(fields: [notificationRecipientId], references: [id], onDelete: Cascade)
+
+  status      QueueStatus @default(PENDING)
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3)
+
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+}
+
+// ---------------------------------------------------------------------
+// Archive
+// ---------------------------------------------------------------------
+
+model ArchiveRecord {
+  id String @id @default(cuid())
+
+  fileId String @unique
+  file   File   @relation(fields: [fileId], references: [id])
+
+  status ArchiveStatus @default(ACTIVE)
+
+  // What File.status was immediately before archiving (COMPLETED/REJECTED/
+  // CLOSED) -- Restore needs this to reinstate the correct prior state
+  // rather than guessing/always defaulting to one value.
+  previousStatus FileStatus?
+
+  archivedById String?
+  archivedBy   User?     @relation("ArchiveArchivedBy", fields: [archivedById], references: [id])
+  archivedAt   DateTime?
+
+  retentionYears     Int?
+  retentionExpiresAt DateTime?
+
+  // Physical shelf/box reference for hybrid paper + electronic archives
+  storageLocation String?
+
+  restoredById String?
+  restoredBy   User?     @relation("ArchiveRestoredBy", fields: [restoredById], references: [id])
+  restoredAt   DateTime?
+
+  destructionApprovedById String?
+  destructionApprovedBy   User?     @relation("ArchiveDestructionApprovedBy", fields: [destructionApprovedById], references: [id])
+  destructionDate         DateTime?
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([retentionExpiresAt])
+}
+
+// =====================================================================
+// STORAGE MODULE
+// Phase 1: generic, provider-agnostic object metadata catalog.
+//
+// Deliberately independent of the File domain above -- the Storage
+// Module is infrastructure any future module can use (attachments,
+// profile images, report exports), not something owned by File. Phase 3
+// (Attachments) will store its own storageBucket/storageKey/checksum
+// directly on FileVersion rather than a FK here, so a FileVersion row
+// stays immutable/self-contained even if this catalog entry is later
+// pruned. This table is the Storage Module's own bookkeeping: what has
+// ever been uploaded, by whom, and (via checksum) whether it's a dup.
+// =====================================================================
+
+model StorageObject {
+  id String @id @default(cuid())
+
+  bucket    String
+  objectKey String
+
+  originalFileName String
+  mimeType         String
+  sizeBytes        BigInt
+  checksum         String
+
+  // Free-form tag set by the caller (e.g. "FILE_ATTACHMENT", "PROFILE_IMAGE")
+  // so future modules can filter their own uploads without a schema change.
+  context String?
+
+  uploadedById String?
+  uploadedBy   User?   @relation("StorageObjectsUploaded", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  // Soft-deleted on DELETE request; the physical object is removed from
+  // the provider immediately, but the metadata row is kept for audit.
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("StorageObjectsDeleted", fields: [deletedById], references: [id])
+
+  @@unique([bucket, objectKey])
+  @@index([checksum])
+  @@index([uploadedById])
+  @@index([context])
+  @@index([createdAt])
+}
+
+// =====================================================================
+// SHARED INFRASTRUCTURE
+// Phase 2: atomic, gap-free number generation for fileNumber/
+// registryNumber/trackingNumber/citizenNumber. A plain
+// `UPDATE ... SET lastValue = lastValue + 1` is row-locked and atomic
+// under concurrent requests without needing an explicit transaction at
+// the call site -- see numberSequence.repository.js.
+// =====================================================================
+
+model NumberSequence {
+  id String @id @default(cuid())
+
+  // e.g. "FILE_NUMBER:FIN", "REGISTRY_NUMBER", "TRACKING_NUMBER", "CITIZEN_NUMBER"
+  scope     String
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([scope, year])
 }
