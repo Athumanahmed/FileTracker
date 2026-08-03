@@ -1,0 +1,85 @@
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { LayoutGrid, Paperclip, Workflow, FileSignature, History } from "lucide-react";
+import PageHeader from "../../components/shared/PageHeader";
+import Tabs from "../../components/shared/Tabs";
+import { getFileStatusMeta } from "../../utils/fileStatusMeta";
+import { useFileDetail } from "../../hooks/useFileDetail";
+import { useFileArchiveStatus } from "../../hooks/useFileArchiveStatus";
+import FileOverviewTab from "../../components/files/detail/FileOverviewTab";
+import FileAttachmentsTab from "../../components/files/detail/FileAttachmentsTab";
+import FileWorkflowTab from "../../components/files/detail/FileWorkflowTab";
+import FileMinutesTab from "../../components/files/detail/FileMinutesTab";
+import FileTimelineTab from "../../components/files/detail/FileTimelineTab";
+
+const TABS = [
+  { id: "overview", name: "Overview", icon: LayoutGrid },
+  { id: "attachments", name: "Attachments", icon: Paperclip },
+  { id: "workflow", name: "Workflow", icon: Workflow },
+  { id: "minutes", name: "Minutes", icon: FileSignature },
+  { id: "timeline", name: "Timeline", icon: History },
+];
+
+const FileDetails = () => {
+  const { fileId } = useParams();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: file, isLoading, isError, refetch } = useFileDetail(fileId);
+  const { data: archiveStatus } = useFileArchiveStatus(fileId);
+
+  if (isLoading) {
+    return (
+      <div className="p-2 xl:p-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-1/3 rounded bg-gray-200" />
+          <div className="h-40 rounded-2xl bg-gray-100" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !file) {
+    return (
+      <div className="p-2 xl:p-4">
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+          <p className="text-sm text-red-600">Unable to load this file.</p>
+          <button type="button" onClick={() => refetch()} className="mt-1.5 text-sm font-semibold text-red-700 hover:underline">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const status = getFileStatusMeta(file.status);
+  const isReadOnly = Boolean(archiveStatus);
+
+  return (
+    <div className="p-2 xl:p-4">
+      <PageHeader
+        title={file.title}
+        description={file.fileNumber}
+        backTo="/registry/files"
+        badge={{ label: status.label, tone: "blue" }}
+        breadcrumbs={[
+          { label: "Dashboard", to: "/registry" },
+          { label: "Files", to: "/registry/files" },
+          { label: file.fileNumber },
+        ]}
+        divider={false}
+      >
+        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={TABS} />
+      </PageHeader>
+
+      <div className="mt-5">
+        {activeTab === "overview" && <FileOverviewTab file={file} archiveStatus={archiveStatus} />}
+        {activeTab === "attachments" && <FileAttachmentsTab fileId={fileId} readOnly={isReadOnly} />}
+        {activeTab === "workflow" && <FileWorkflowTab fileId={fileId} />}
+        {activeTab === "minutes" && <FileMinutesTab fileId={fileId} readOnly={isReadOnly} />}
+        {activeTab === "timeline" && <FileTimelineTab fileId={fileId} />}
+      </div>
+    </div>
+  );
+};
+
+export default FileDetails;

@@ -37,6 +37,8 @@ import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 import Profile from "../../pages/Profile";
 import RegistryDashboard from "../../pages/registry/RegistryDashboard";
+import AllFiles from "../../pages/registry/AllFiles";
+import FileDetails from "../../pages/registry/FileDetails";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -383,7 +385,22 @@ const AppRoutes = (
       <Route path="registry" element={actorShell(ROLES.REGISTRY)}>
         <Route index element={<RegistryDashboard />} />
         {notificationsRoute}
-        {filesRoute}
+        <Route
+          path="files"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
+              <AllFiles />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="files/:fileId"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
+              <FileDetails />
+            </RoleBasedRoute>
+          }
+        />
         {registerFileRoute}
         {workflowRoute}
         {reportsRoute}

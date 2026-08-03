@@ -79,6 +79,10 @@ const REGISTRY_PERMISSIONS = [
   "ATTACHMENTS.DOWNLOAD",
   "ATTACHMENTS.UPDATE",
   "ATTACHMENTS.DELETE",
+  // Registry is the one routing a newly registered file into its workflow
+  // (see startWorkflow's template picker in the UI), so -- unlike every
+  // other workflow-assignee role -- it also needs to list templates.
+  "WORKFLOW_TEMPLATES.READ",
   "WORKFLOW.MANAGE",
   "WORKFLOW.READ",
   "MINUTES.CREATE",

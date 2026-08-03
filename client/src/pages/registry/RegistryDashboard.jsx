@@ -74,7 +74,7 @@ const RegistryDashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
             <RecentFilesCard
-              data={recentFiles?.items}
+              data={recentFiles?.data}
               isLoading={recentFilesLoading}
               isError={recentFilesError}
               refetch={refetchRecentFiles}

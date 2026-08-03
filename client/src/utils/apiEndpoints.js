@@ -78,7 +78,44 @@ export const API_ENDPOINTS = {
   // listed; extend this block as each module's UI is built.
   FILES: {
     LIST: "/api/v1/files",
+    CREATE: "/api/v1/files",
     DETAIL: (fileId) => `/api/v1/files/${fileId}`,
+  },
+
+  ATTACHMENTS: {
+    LIST_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/attachments`,
+    UPLOAD_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/attachments`,
+    DOWNLOAD: (id) => `/api/v1/attachments/${id}/download`,
+    PREVIEW: (id) => `/api/v1/attachments/${id}/preview`,
+    REPLACE: (id) => `/api/v1/attachments/${id}/replace`,
+    DELETE: (id) => `/api/v1/attachments/${id}`,
+  },
+
+  WORKFLOW_TEMPLATES: {
+    LIST: "/api/v1/workflow-templates",
+  },
+
+  WORKFLOW: {
+    STATUS: (fileId) => `/api/v1/files/${fileId}/workflow`,
+    START: (fileId) => `/api/v1/files/${fileId}/workflow/start`,
+    TRANSITION: (fileId) => `/api/v1/files/${fileId}/workflow/transition`,
+    CLAIM: (fileId) => `/api/v1/files/${fileId}/workflow/claim`,
+    MOVEMENTS: (fileId) => `/api/v1/files/${fileId}/movements`,
+  },
+
+  MINUTES: {
+    LIST_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/minutes`,
+    CREATE_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/minutes`,
+    REPLY: (id) => `/api/v1/minutes/${id}/reply`,
+    DELETE: (id) => `/api/v1/minutes/${id}`,
+  },
+
+  TIMELINE: {
+    LIST_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/timeline`,
+  },
+
+  ARCHIVE: {
+    STATUS_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/archive`,
   },
 
   REPORTS: {

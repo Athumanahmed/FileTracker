@@ -172,6 +172,77 @@ export const getFiles = (accessToken, params = {}) =>
 export const getFileById = (accessToken, fileId) =>
   apiClient.get(API_ENDPOINTS.FILES.DETAIL(fileId), authHeader(accessToken));
 
+// -- Attachments ---------------------------------------------------------------
+// Uploads pass a FormData body -- axios detects it and lets the browser set
+// the multipart boundary itself, overriding apiClient's JSON default
+// (see node_modules/axios/lib/defaults/index.js's isFormData branch), so no
+// manual Content-Type handling is needed here.
+
+export const getFileAttachments = (accessToken, fileId) =>
+  apiClient.get(API_ENDPOINTS.ATTACHMENTS.LIST_FOR_FILE(fileId), authHeader(accessToken));
+
+export const uploadAttachment = (accessToken, fileId, formData) =>
+  apiClient.post(API_ENDPOINTS.ATTACHMENTS.UPLOAD_FOR_FILE(fileId), formData, authHeader(accessToken));
+
+export const replaceAttachment = (accessToken, attachmentId, formData) =>
+  apiClient.post(API_ENDPOINTS.ATTACHMENTS.REPLACE(attachmentId), formData, authHeader(accessToken));
+
+export const deleteAttachment = (accessToken, attachmentId) =>
+  apiClient.delete(API_ENDPOINTS.ATTACHMENTS.DELETE(attachmentId), authHeader(accessToken));
+
+/** responseType: "blob" -- caller turns this into an object URL to trigger a download or open an inline preview tab. */
+export const downloadAttachmentFile = (accessToken, attachmentId) =>
+  apiClient.get(API_ENDPOINTS.ATTACHMENTS.DOWNLOAD(attachmentId), { ...authHeader(accessToken), responseType: "blob" });
+
+export const previewAttachmentFile = (accessToken, attachmentId) =>
+  apiClient.get(API_ENDPOINTS.ATTACHMENTS.PREVIEW(attachmentId), { ...authHeader(accessToken), responseType: "blob" });
+
+// -- Workflow Templates (lookup, for the Start Workflow picker) ----------------
+
+export const getWorkflowTemplates = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW_TEMPLATES.LIST, { ...authHeader(accessToken), params });
+
+// -- Workflow Engine -------------------------------------------------------------
+
+export const getFileWorkflowStatus = (accessToken, fileId) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW.STATUS(fileId), authHeader(accessToken));
+
+export const startFileWorkflow = (accessToken, fileId, payload) =>
+  apiClient.post(API_ENDPOINTS.WORKFLOW.START(fileId), payload, authHeader(accessToken));
+
+export const transitionFileWorkflow = (accessToken, fileId, payload) =>
+  apiClient.post(API_ENDPOINTS.WORKFLOW.TRANSITION(fileId), payload, authHeader(accessToken));
+
+export const claimWorkflowAssignment = (accessToken, fileId) =>
+  apiClient.post(API_ENDPOINTS.WORKFLOW.CLAIM(fileId), {}, authHeader(accessToken));
+
+export const getFileMovements = (accessToken, fileId, params = {}) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW.MOVEMENTS(fileId), { ...authHeader(accessToken), params });
+
+// -- Minutes ---------------------------------------------------------------------
+
+export const getFileMinutes = (accessToken, fileId) =>
+  apiClient.get(API_ENDPOINTS.MINUTES.LIST_FOR_FILE(fileId), authHeader(accessToken));
+
+export const createFileMinute = (accessToken, fileId, formData) =>
+  apiClient.post(API_ENDPOINTS.MINUTES.CREATE_FOR_FILE(fileId), formData, authHeader(accessToken));
+
+export const replyToMinute = (accessToken, minuteId, formData) =>
+  apiClient.post(API_ENDPOINTS.MINUTES.REPLY(minuteId), formData, authHeader(accessToken));
+
+export const deleteMinute = (accessToken, minuteId) =>
+  apiClient.delete(API_ENDPOINTS.MINUTES.DELETE(minuteId), authHeader(accessToken));
+
+// -- Timeline (read-only) ---------------------------------------------------------
+
+export const getFileTimeline = (accessToken, fileId, params = {}) =>
+  apiClient.get(API_ENDPOINTS.TIMELINE.LIST_FOR_FILE(fileId), { ...authHeader(accessToken), params });
+
+// -- Archive -----------------------------------------------------------------------
+
+export const getFileArchiveStatus = (accessToken, fileId) =>
+  apiClient.get(API_ENDPOINTS.ARCHIVE.STATUS_FOR_FILE(fileId), authHeader(accessToken));
+
 // -- Reports & Dashboard (File Lifecycle Management) --------------------------
 // params.departmentId is honored for management roles (SYSTEM_ADMIN/DIRECTOR/
 // SUPERVISOR) and ignored server-side for HOD (always their own department) --
