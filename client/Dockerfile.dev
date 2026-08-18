@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies first (cached as long as package files don't change)
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+EXPOSE 3000
+
+# Source is bind-mounted over /app at runtime (see docker-compose.dev.yml),
+# so Vite's HMR picks up live edits. --host is required so the dev server
+# accepts connections from outside the container.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

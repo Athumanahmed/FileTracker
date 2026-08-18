@@ -8,6 +8,8 @@ import { seedUnits } from "./seeds/seedUnits.js";
 import { seedPositions } from "./seeds/seedPositions.js";
 import { seedFileCategories } from "./seeds/seedFileCategories.js";
 import { seedAdmin } from "./seeds/seedAdmin.js";
+import { seedTestUsers } from "./seeds/seedTestUsers.js";
+import { seedWorkflowTemplates } from "./seeds/seedWorkflowTemplates.js";
 
 async function main() {
   // seeders
@@ -26,6 +28,8 @@ async function main() {
   await seedFileCategories(prisma);
 
   await seedAdmin(prisma);
+  await seedTestUsers(prisma);
+  await seedWorkflowTemplates(prisma);
 
   console.log("\n=================================");
   console.log("Database Seeding Completed");

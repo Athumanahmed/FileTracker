@@ -1,8 +1,8 @@
-# PRODUCTION / VPS deploy — static built frontend (nginx), no hot-reload.
-# Run:   docker compose up -d --build
+# LOCAL DEVELOPMENT — hot-reload backend (nodemon) + hot-reload frontend (Vite).
+# Run:   docker compose -f docker-compose.dev.yml up --build
 #
-# For local development with live code reload, use docker-compose.dev.yml
-# instead: docker compose -f docker-compose.dev.yml up --build
+# For a VPS / production deploy, use the plain docker-compose.yml instead:
+# docker compose up -d --build
 # See SETUP.md for details.
 
 services:
@@ -16,6 +16,8 @@ services:
       POSTGRES_DB: FileTrackerDB
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -44,9 +46,9 @@ services:
   backend:
     build:
       context: ./server
-      dockerfile: Dockerfile
-    container_name: fileTracker-backend
-    restart: always
+      dockerfile: Dockerfile.dev
+    container_name: fileTracker-backend-dev
+    restart: unless-stopped
     env_file:
       - ./server/.env
     environment:
@@ -56,25 +58,38 @@ services:
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: fileTrackerMinioAdmin
       MINIO_SECRET_KEY: FileTracker-Minio-@2026
+      CLIENT_URL: http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
       minio:
         condition: service_healthy
+    volumes:
+      - ./server:/app
+      - server_node_modules:/app/node_modules
     ports:
       - "5051:5051"
 
   frontend:
     build:
       context: ./client
-      dockerfile: Dockerfile
-    container_name: fileTracker-frontend
-    restart: always
+      dockerfile: Dockerfile.dev
+    container_name: fileTracker-frontend-dev
+    restart: unless-stopped
+    environment:
+      VITE_ENV_MODE: development
+      VITE_BACKEND_URL: http://localhost:5051
+      CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend
+    volumes:
+      - ./client:/app
+      - client_node_modules:/app/node_modules
     ports:
-      - "3000:80"
+      - "3000:3000"
 
 volumes:
   postgres_data:
   minio_data:
+  server_node_modules:
+  client_node_modules:

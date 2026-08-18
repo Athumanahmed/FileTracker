@@ -1,0 +1,28 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Required by Prisma engine
+RUN apk add --no-cache openssl libc6-compat
+
+# Install dependencies first (cached as long as package files don't change)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Generate the Prisma client for this container's platform (schema is
+# bind-mounted at runtime too, but a build-time client avoids a first-boot
+# generate delay)
+COPY prisma ./prisma
+RUN npx prisma generate
+
+EXPOSE 5051
+
+# Source is bind-mounted over /app at runtime (see docker-compose.dev.yml).
+# -L (legacy/polling watch) is used because file-change events from a
+# Windows-host bind mount don't reliably reach inotify inside the container.
+#
+# Migrations/seeding are NOT run automatically here on purpose -- run them
+# the same way you would in production, see SETUP.md:
+#   docker compose -f docker-compose.dev.yml exec backend npx prisma migrate deploy
+#   docker compose -f docker-compose.dev.yml exec backend npx prisma db seed
+CMD ["npx", "nodemon", "-L", "server.js"]
