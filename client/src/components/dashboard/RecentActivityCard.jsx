@@ -1,37 +1,11 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import {
-  UserPlus,
-  UserCog,
-  Building2,
-  Boxes,
-  IdCard,
-  ShieldCheck,
-  KeyRound,
-  Link2,
-  Activity,
-  AlertTriangle,
-} from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { getAuditLogIcon } from "../../utils/auditLogIcons";
 
 dayjs.extend(relativeTime);
-
-const ENTITY_ICONS = {
-  User: { created: UserPlus, other: UserCog },
-  Department: { other: Building2 },
-  Unit: { other: Boxes },
-  Position: { other: IdCard },
-  Role: { other: ShieldCheck },
-  Permission: { other: KeyRound },
-  RolePermission: { other: Link2 },
-};
-
-const getIcon = (log) => {
-  const entry = ENTITY_ICONS[log.entity];
-  if (!entry) return Activity;
-  if (log.action.endsWith("_CREATED") && entry.created) return entry.created;
-  return entry.other;
-};
 
 const Skeleton = () => (
   <div className="space-y-4 animate-pulse">
@@ -53,7 +27,7 @@ const Skeleton = () => (
  * Supervisor's) is chosen by the caller and passed in, so this one card
  * serves every dashboard rather than being duplicated per role.
  */
-const RecentActivityCard = ({ title = "Recent Activities", data, isLoading, isError, refetch }) => {
+const RecentActivityCard = ({ title = "Recent Activities", data, isLoading, isError, refetch, viewAllTo }) => {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm flex flex-col">
       <h2 className="font-semibold text-gray-900">{title}</h2>
@@ -76,7 +50,7 @@ const RecentActivityCard = ({ title = "Recent Activities", data, isLoading, isEr
         ) : data?.length ? (
           <ul className="space-y-4">
             {data.map((log) => {
-              const Icon = getIcon(log);
+              const Icon = getAuditLogIcon(log);
               return (
                 <li key={log.id} className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primaryBlueLight text-primaryBlue">
@@ -97,13 +71,22 @@ const RecentActivityCard = ({ title = "Recent Activities", data, isLoading, isEr
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => toast("The full activity log is coming soon.")}
-        className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-      >
-        View All Activities
-      </button>
+      {viewAllTo ? (
+        <Link
+          to={viewAllTo}
+          className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          View All Activities
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => toast("The full activity log is coming soon.")}
+          className="mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          View All Activities
+        </button>
+      )}
     </div>
   );
 };

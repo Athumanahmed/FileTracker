@@ -6,9 +6,9 @@ import StatCard from "../../components/shared/StatCard";
 import DataTable from "../../components/shared/DataTable";
 import DataPagination from "../../components/shared/DataPagination";
 import UsersFilterBar from "../../components/users/UsersFilterBar";
-import { userTableColumns } from "../../components/users/userTableColumns";
 import { useAdminUsersList } from "../../hooks/useAdminUsersList";
 import { useAdminUserStats } from "../../hooks/useAdminUserStats";
+import { useUserRowActions } from "../../hooks/useUserRowActions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -62,6 +62,8 @@ const SystemUsers = () => {
 
   const users = data?.data ?? [];
   const meta = data?.meta;
+
+  const { columns, modals } = useUserRowActions("/admin");
 
   return (
     <div className="p-2 xl:p-4">
@@ -146,7 +148,7 @@ const SystemUsers = () => {
 
       <DataTable
         data={users}
-        columns={userTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -175,6 +177,8 @@ const SystemUsers = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };

@@ -1,5 +1,4 @@
 import { Eye, Pencil, UserCheck, UserX, Lock, LockOpen, KeyRound } from "lucide-react";
-import toast from "react-hot-toast";
 import { getInitials, formatDateTime } from "../../utils/formatters";
 import RowActionsMenu from "../shared/RowActionsMenu";
 
@@ -32,8 +31,21 @@ const ROLE_BADGE_CLASS =
  * the `sortBy` values server/validators/adminUserQuery.validation.js
  * accepts -- SystemUsers.jsx forwards the active sort column's id straight
  * through as the API's sortBy param.
+ *
+ * A factory (not a static array) because the actions column's handlers are
+ * owned by SystemUsers.jsx (modal state, mutations) -- passing them in here
+ * keeps this file purely about column shape/formatting. `basePath` (e.g.
+ * "/admin", "/hod") builds the View Details link -- that action navigates
+ * to the dedicated UserDetails page instead of opening a modal.
  */
-export const userTableColumns = [
+export const createUserTableColumns = ({
+  basePath,
+  onEditUser,
+  onToggleActive,
+  onToggleLock,
+  onResetPassword,
+  canEditUser = true,
+}) => [
   {
     id: "fullName",
     accessorKey: "fullName",
@@ -127,16 +139,16 @@ export const userTableColumns = [
           <RowActionsMenu
             label={`Actions for ${user.fullName || user.username}`}
             actions={[
-              { label: "View Details", icon: Eye, onClick: () => toast("User detail view is coming soon.") },
-              { label: "Edit User", icon: Pencil, onClick: () => toast("Editing users is coming soon.") },
+              { label: "View Details", icon: Eye, to: `${basePath}/users/${user.id}` },
+              ...(canEditUser ? [{ label: "Edit User", icon: Pencil, onClick: () => onEditUser(user) }] : []),
               { type: "divider" },
               user.isActive
-                ? { label: "Deactivate", icon: UserX, onClick: () => toast("Deactivating users is coming soon.") }
-                : { label: "Activate", icon: UserCheck, onClick: () => toast("Activating users is coming soon.") },
+                ? { label: "Deactivate", icon: UserX, variant: "danger", onClick: () => onToggleActive(user) }
+                : { label: "Activate", icon: UserCheck, onClick: () => onToggleActive(user) },
               isLocked
-                ? { label: "Unlock Account", icon: LockOpen, onClick: () => toast("Unlocking accounts is coming soon.") }
-                : { label: "Lock Account", icon: Lock, onClick: () => toast("Locking accounts is coming soon.") },
-              { label: "Reset Password", icon: KeyRound, onClick: () => toast("Admin password reset is coming soon.") },
+                ? { label: "Unlock Account", icon: LockOpen, onClick: () => onToggleLock(user) }
+                : { label: "Lock Account", icon: Lock, onClick: () => onToggleLock(user) },
+              { label: "Reset Password", icon: KeyRound, onClick: () => onResetPassword(user) },
             ]}
           />
         </div>

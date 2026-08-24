@@ -5,9 +5,9 @@ import StatCard from "../components/shared/StatCard";
 import DataTable from "../components/shared/DataTable";
 import DataPagination from "../components/shared/DataPagination";
 import ScopedUsersFilterBar from "../components/users/ScopedUsersFilterBar";
-import { userTableColumns } from "../components/users/userTableColumns";
 import { useAdminUsersList } from "../hooks/useAdminUsersList";
 import { useAdminUserStats } from "../hooks/useAdminUserStats";
+import { useUserRowActions } from "../hooks/useUserRowActions";
 import useAuthStore from "../store/authStore";
 import { getCreatableActorTypes } from "../utils/creatableActorTypes";
 import { getDashboardHomePath } from "../utils/dashboardHome";
@@ -78,6 +78,8 @@ const ScopedUsers = () => {
 
   const users = data?.data ?? [];
   const meta = data?.meta;
+
+  const { columns, modals } = useUserRowActions(getDashboardHomePath(user));
 
   return (
     <div className="p-2 xl:p-4">
@@ -153,7 +155,7 @@ const ScopedUsers = () => {
 
       <DataTable
         data={users}
-        columns={userTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -182,6 +184,8 @@ const ScopedUsers = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };

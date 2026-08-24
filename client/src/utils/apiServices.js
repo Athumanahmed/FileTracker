@@ -96,6 +96,26 @@ export const getAdminUserById = (accessToken, userId) =>
 export const getAdminUserStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.USERS.ADMIN_STATS, authHeader(accessToken));
 
+export const updateAdminUser = (accessToken, userId, payload) =>
+  apiClient.put(API_ENDPOINTS.USERS.ADMIN_DETAIL(userId), payload, authHeader(accessToken));
+
+export const activateAdminUser = (accessToken, userId) =>
+  apiClient.patch(API_ENDPOINTS.USERS.ADMIN_ACTIVATE(userId), {}, authHeader(accessToken));
+
+export const deactivateAdminUser = (accessToken, userId) =>
+  apiClient.patch(API_ENDPOINTS.USERS.ADMIN_DEACTIVATE(userId), {}, authHeader(accessToken));
+
+export const lockAdminUser = (accessToken, userId) =>
+  apiClient.patch(API_ENDPOINTS.USERS.ADMIN_LOCK(userId), {}, authHeader(accessToken));
+
+export const unlockAdminUser = (accessToken, userId) =>
+  apiClient.patch(API_ENDPOINTS.USERS.ADMIN_UNLOCK(userId), {}, authHeader(accessToken));
+
+// Returns { username, newPassword } -- the generated password is shown
+// exactly once, same one-time-reveal contract as user creation.
+export const resetAdminUserPassword = (accessToken, userId) =>
+  apiClient.post(API_ENDPOINTS.USERS.ADMIN_RESET_PASSWORD(userId), {}, authHeader(accessToken));
+
 // -- Users (creation) -- all SYSTEM_ADMIN-creatable, global-scope except HOD ---
 
 export const createDirector = (accessToken, payload) =>
@@ -189,6 +209,12 @@ export const getAdminRecentActivity = (accessToken, limit = 10) =>
     ...authHeader(accessToken),
     params: { limit },
   });
+
+export const getAdminAuditLogs = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN_AUDIT_LOGS, { ...authHeader(accessToken), params });
+
+export const getAdminAuditLogEntityOptions = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN_AUDIT_LOG_ENTITIES, authHeader(accessToken));
 
 export const getScopedDashboardSummary = (accessToken) =>
   apiClient.get(API_ENDPOINTS.DASHBOARD.SCOPED_SUMMARY, authHeader(accessToken));

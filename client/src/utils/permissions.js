@@ -4,6 +4,12 @@
 // listed here; add more as each module's UI is built.
 export const PERMISSIONS = {
   USERS_READ: "USERS.READ",
+  // Admin-only in practice: only SYSTEM_ADMIN's blanket grant holds this --
+  // HOD/SUPERVISOR get USERS.ACTIVATE/DEACTIVATE/LOCK/UNLOCK/RESET_PASSWORD
+  // but not USERS.UPDATE (see server/prisma/seeds/seedRolePermissions.js's
+  // ACCOUNT_MANAGEMENT_PERMISSIONS), so "Edit User" gates on this
+  // specifically rather than assuming every account-management role has it.
+  USERS_UPDATE: "USERS.UPDATE",
   DEPARTMENTS_READ: "DEPARTMENTS.READ",
   DEPARTMENTS_CREATE: "DEPARTMENTS.CREATE",
   UNITS_READ: "UNITS.READ",

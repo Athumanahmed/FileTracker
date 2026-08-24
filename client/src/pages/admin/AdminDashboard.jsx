@@ -99,6 +99,7 @@ const AdminDashboard = () => {
               isLoading={recentActivityLoading}
               isError={recentActivityError}
               refetch={refetchRecentActivity}
+              viewAllTo="/admin/audit-logs"
             />
             <SystemAlertsCard inactiveUsersCount={summary?.alerts?.inactiveUsers} loading={isLoading} />
             <QuickActionsCard />

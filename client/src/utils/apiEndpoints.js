@@ -19,6 +19,11 @@ export const API_ENDPOINTS = {
     ADMIN_LIST: "/api/v1/admin/users",
     ADMIN_STATS: "/api/v1/admin/users/stats",
     ADMIN_DETAIL: (userId) => `/api/v1/admin/users/${userId}`,
+    ADMIN_ACTIVATE: (userId) => `/api/v1/admin/users/${userId}/activate`,
+    ADMIN_DEACTIVATE: (userId) => `/api/v1/admin/users/${userId}/deactivate`,
+    ADMIN_LOCK: (userId) => `/api/v1/admin/users/${userId}/lock`,
+    ADMIN_UNLOCK: (userId) => `/api/v1/admin/users/${userId}/unlock`,
+    ADMIN_RESET_PASSWORD: (userId) => `/api/v1/admin/users/${userId}/reset-password`,
     // SYSTEM_ADMIN-creatable actors -- see server/routes/user.routes.js.
     CREATE_DIRECTOR: "/api/v1/users/directors",
     CREATE_HOD: "/api/v1/users/hods",
@@ -37,6 +42,8 @@ export const API_ENDPOINTS = {
   DASHBOARD: {
     ADMIN_SUMMARY: "/api/v1/dashboard/admin/summary",
     ADMIN_RECENT_ACTIVITY: "/api/v1/dashboard/admin/recent-activity",
+    ADMIN_AUDIT_LOGS: "/api/v1/dashboard/admin/audit-logs",
+    ADMIN_AUDIT_LOG_ENTITIES: "/api/v1/dashboard/admin/audit-logs/entities",
     SCOPED_SUMMARY: "/api/v1/dashboard/scoped/summary",
     SCOPED_RECENT_ACTIVITY: "/api/v1/dashboard/scoped/recent-activity",
   },

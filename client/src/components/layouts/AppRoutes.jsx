@@ -33,6 +33,8 @@ import CreatePermission from "../../pages/admin/CreatePermission";
 import RolePermissions from "../../pages/admin/RolePermissions";
 import ScopedDashboard from "../../pages/ScopedDashboard";
 import ScopedUsers from "../../pages/ScopedUsers";
+import UserDetails from "../../pages/UserDetails";
+import AuditLogs from "../../pages/admin/AuditLogs";
 import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 import Profile from "../../pages/Profile";
@@ -151,6 +153,20 @@ const reportsRoute = (
 // inbox, same as the backend endpoints (no permission check beyond auth).
 const notificationsRoute = <Route path="notifications" element={<Notifications />} />;
 
+// Users directory detail page -- same USERS.READ gate as the "users" list
+// route it's nested under (admin/hod/supervisor only; no other role has a
+// Users directory at all). Mirrors fileDetailsRoute's shape.
+const userDetailsRoute = (
+  <Route
+    path="users/:userId"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.USERS_READ}>
+        <UserDetails />
+      </RoleBasedRoute>
+    }
+  />
+);
+
 const AppRoutes = (
   <Routes>
     <Route path="/">
@@ -203,7 +219,6 @@ const AppRoutes = (
         {notificationsRoute}
         {filesRoute}
         {fileDetailsRoute}
-        {registerFileRoute}
         {workflowRoute}
         {archiveRoute}
         {reportsRoute}
@@ -215,6 +230,7 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+        {userDetailsRoute}
 
         <Route
           path="create-users"
@@ -322,18 +338,11 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
-        {/* No dedicated backend permission for these two yet -- the parent
+        {/* No dedicated backend permission at the route level -- the parent
             SYSTEM_ADMIN role guard above is the only gate, same as the
-            admin index route. */}
-        <Route
-          path="audit-logs"
-          element={
-            <PlaceholderPage
-              title="Audit Logs"
-              description="The full activity log viewer is coming soon."
-            />
-          }
-        />
+            admin index route (the API underneath does require
+            DASHBOARD.READ_ADMIN_SUMMARY, which SYSTEM_ADMIN always holds). */}
+        <Route path="audit-logs" element={<AuditLogs />} />
         <Route
           path="settings"
           element={
@@ -361,6 +370,7 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+        {userDetailsRoute}
         <Route
           path="create-supervisor"
           element={
@@ -387,6 +397,7 @@ const AppRoutes = (
             </RoleBasedRoute>
           }
         />
+        {userDetailsRoute}
         <Route
           path="create-officer"
           element={
