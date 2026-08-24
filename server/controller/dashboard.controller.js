@@ -21,6 +21,18 @@ export const getRecentActivity = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Recent activity retrieved successfully.", data: activity });
 });
 
+export const getAuditLogs = asyncHandler(async (req, res) => {
+  const { items, meta } = await dashboardService.listAuditLogsForAdmin(req.query);
+
+  res.status(200).json({ success: true, message: "Audit logs retrieved successfully.", data: items, meta });
+});
+
+export const getAuditLogEntityOptions = asyncHandler(async (req, res) => {
+  const entities = await dashboardService.getAuditLogEntityOptions();
+
+  res.status(200).json({ success: true, message: "Audit log entity options retrieved successfully.", data: entities });
+});
+
 export const getScopedSummary = asyncHandler(async (req, res) => {
   const summary = await dashboardService.getScopedSummary(req.user.userId);
 

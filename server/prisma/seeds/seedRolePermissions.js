@@ -17,11 +17,16 @@ import prisma from "../../config/prisma.js";
  *    would let the request through, then the service's independent
  *    ROLE_CREATION_MATRIX check would still reject it, producing a
  *    confusing 403 despite /me listing the permission as held.
+ *
+ *  - FILES.REGISTER: SYSTEM_ADMIN is view-only over the file registry.
+ *    Registration stays Registry-Officer-only (see REGISTRY_PERMISSIONS
+ *    below); admin keeps FILES.READ from the blanket grant.
  */
 const NEVER_GRANT_TO_SYSTEM_ADMIN = [
   "USERS.CREATE.SUPER_ADMIN",
   "USERS.CREATE.OFFICER",
   "USERS.CREATE.SUPERVISOR",
+  "FILES.REGISTER",
 ];
 
 /**
@@ -63,9 +68,9 @@ const ACCOUNT_MANAGEMENT_PERMISSIONS = [
 const SCOPED_READ_PERMISSIONS = ["USERS.READ", "DASHBOARD.READ_SCOPED_SUMMARY", "ROLES.READ"];
 
 /**
- * File Registration (Phase 2) is Registry-Officer-only by design --
- * SYSTEM_ADMIN also holds these via the blanket grant below, kept as a
- * system-wide override, not a second "normal" way to register a file.
+ * File Registration (Phase 2) is Registry-Officer-only. SYSTEM_ADMIN is
+ * explicitly excluded from FILES.REGISTER (see NEVER_GRANT_TO_SYSTEM_ADMIN
+ * above) -- admin can view the registry but not register into it.
  * Registry also drives the workflow engine (Phase 4): they route a newly
  * registered file into its workflow and can act on it like anyone else
  * it's assigned to.
@@ -176,6 +181,16 @@ export async function seedRolePermissions() {
     for (const permission of permissions) {
       if (NEVER_GRANT_TO_SYSTEM_ADMIN.includes(permission.code)) continue;
       await grant(systemAdmin.id, permission.id);
+    }
+
+    // Revoke rather than just skip-grant, so re-seeding an already-seeded
+    // DB (e.g. after NEVER_GRANT_TO_SYSTEM_ADMIN gains an entry) actually
+    // removes a previously granted permission instead of leaving it stuck.
+    const revokedIds = NEVER_GRANT_TO_SYSTEM_ADMIN.map((code) => permissionByCode.get(code)?.id).filter(Boolean);
+    if (revokedIds.length) {
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: systemAdmin.id, permissionId: { in: revokedIds } },
+      });
     }
   }
 

@@ -3,6 +3,7 @@ import * as dashboardRepository from "../repositories/dashboard.repository.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import { resolveActorScope } from "./userScope.service.js";
 import { withWeeklyTrend } from "../utils/trendCalculator.js";
+import { parsePagination, buildPaginationMeta } from "../utils/queryOptions.js";
 
 export const getAdminSummary = async () => {
   const activeUserWhere = { deletedAt: null };
@@ -85,6 +86,64 @@ export const getRecentActivity = async (limit) => {
     createdAt: log.createdAt,
   }));
 };
+
+/**
+ * Builds the AuditLog.findMany `where` for the full Audit Logs page --
+ * unlike getRecentActivity's fixed-size feed, this is a real filterable/
+ * searchable listing. `search` deliberately reaches across description,
+ * action, entity, AND the related user's name/username in one OR clause
+ * (queryOptions.js's buildSearchClause only handles flat fields on the
+ * model itself, not a relation, so this is hand-rolled instead of reused).
+ */
+const buildAuditLogWhere = (query) => {
+  const where = {};
+
+  if (query.entity) where.entity = query.entity;
+  if (query.dateFrom || query.dateTo) {
+    where.createdAt = {};
+    if (query.dateFrom) where.createdAt.gte = new Date(query.dateFrom);
+    if (query.dateTo) where.createdAt.lte = new Date(query.dateTo);
+  }
+  if (query.search) {
+    where.OR = [
+      { description: { contains: query.search, mode: "insensitive" } },
+      { action: { contains: query.search, mode: "insensitive" } },
+      { entity: { contains: query.search, mode: "insensitive" } },
+      { user: { fullName: { contains: query.search, mode: "insensitive" } } },
+      { user: { username: { contains: query.search, mode: "insensitive" } } },
+    ];
+  }
+
+  return where;
+};
+
+/** Full, paginated Audit Logs page -- richer per-row detail (entityId, ipAddress, metadata, structured performedBy) than the dashboard widget's flattened feed, since this is the "drill into what actually happened" surface. */
+export const listAuditLogsForAdmin = async (query) => {
+  const { page, limit, skip, take } = parsePagination(query);
+  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+  const where = buildAuditLogWhere(query);
+
+  const [logs, total] = await Promise.all([
+    dashboardRepository.findAuditLogs({ where, orderBy: { createdAt: sortOrder }, skip, take }),
+    dashboardRepository.countAuditLogs(where),
+  ]);
+
+  const items = logs.map((log) => ({
+    id: log.id,
+    action: log.action,
+    entity: log.entity,
+    entityId: log.entityId,
+    description: humanize(log),
+    performedBy: log.user ? { id: log.user.id, fullName: log.user.fullName, username: log.user.username } : null,
+    ipAddress: log.ipAddress,
+    metadata: log.metadata,
+    createdAt: log.createdAt,
+  }));
+
+  return { items, meta: buildPaginationMeta(total, page, limit) };
+};
+
+export const getAuditLogEntityOptions = () => dashboardRepository.findDistinctAuditEntities();
 
 const SUBORDINATE_ROLE_BY_SCOPE = { DEPARTMENT: "SUPERVISOR", UNIT: "OFFICER" };
 const SUBORDINATE_LABEL_BY_SCOPE = { DEPARTMENT: "Supervisors", UNIT: "Officers" };

@@ -19,6 +19,21 @@ router.get(
   dashboardController.getRecentActivity,
 );
 
+// Entity filter options for the Audit Logs page's dropdown.
+router.get(
+  "/admin/audit-logs/entities",
+  authenticate,
+  authorize("DASHBOARD.READ_ADMIN_SUMMARY"),
+  dashboardController.getAuditLogEntityOptions,
+);
+
+router.get(
+  "/admin/audit-logs",
+  authenticate,
+  authorize("DASHBOARD.READ_ADMIN_SUMMARY"),
+  dashboardController.getAuditLogs,
+);
+
 // Shared by every DEPARTMENT/UNIT-scoped role (HOD, SUPERVISOR) -- the
 // response shape adapts to the actor's own scope (see
 // dashboard.service.js#getScopedSummary), not two near-identical routes.

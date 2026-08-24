@@ -13,6 +13,18 @@ import * as sessionService from "./session.service.js";
 // caller distinguish whether a username exists.
 const GENERIC_AUTH_ERROR = "Invalid Credentials";
 
+// Unlike GENERIC_AUTH_ERROR, these deliberately DO tell the caller their
+// account exists but can't sign in right now, and why -- a deactivated/
+// locked/suspended account is administrative status, not a guessed
+// credential, so there's nothing for this messaging to leak that the
+// account holder doesn't already know (they know their own username).
+const ACCOUNT_STATUS_MESSAGES = {
+  PENDING_ACTIVATION: "Your account has not been activated yet. Please contact your administrator.",
+  SUSPENDED: "Your account has been suspended. Please contact your administrator.",
+  DISABLED: "Your account has been disabled. Please contact your administrator.",
+  ARCHIVED: "Your account has been archived. Please contact your administrator.",
+};
+
 const isAccountLocked = (user) =>
   Boolean(user.lockedUntil && user.lockedUntil > new Date());
 
@@ -77,7 +89,7 @@ export const login = async ({ username, password, ipAddress, userAgent }) => {
     throw new AppError(401, GENERIC_AUTH_ERROR);
   }
 
-  if (!user.isActive || user.status !== "ACTIVE") {
+  if (!user.isActive) {
     await authRepository.createLoginAttempt({
       userId: user.id,
       username,
@@ -87,10 +99,48 @@ export const login = async ({ username, password, ipAddress, userAgent }) => {
     await logAudit(
       user.id,
       AUDIT_ACTIONS.LOGIN_FAILED,
-      "Account is not active",
+      "Login attempt on deactivated account",
       ipAddress,
     );
-    throw new AppError(401, GENERIC_AUTH_ERROR);
+    throw new AppError(403, "Your account has been deactivated. Please contact your administrator.");
+  }
+
+  // Admin-set persistent lock (see userAccountStatus.service.js#lockUser) --
+  // distinct from isAccountLocked() below, which is the automatic, temporary
+  // lockedUntil-based lockout the failed-attempts counter applies.
+  if (user.status === "LOCKED") {
+    await authRepository.createLoginAttempt({
+      userId: user.id,
+      username,
+      ipAddress,
+      successful: false,
+    });
+    await logAudit(
+      user.id,
+      AUDIT_ACTIONS.LOGIN_FAILED,
+      "Login attempt on admin-locked account",
+      ipAddress,
+    );
+    throw new AppError(423, "Your account has been locked by an administrator. Please contact your administrator to unlock it.");
+  }
+
+  if (user.status !== "ACTIVE") {
+    await authRepository.createLoginAttempt({
+      userId: user.id,
+      username,
+      ipAddress,
+      successful: false,
+    });
+    await logAudit(
+      user.id,
+      AUDIT_ACTIONS.LOGIN_FAILED,
+      `Login attempt on ${user.status} account`,
+      ipAddress,
+    );
+    throw new AppError(
+      403,
+      ACCOUNT_STATUS_MESSAGES[user.status] || "Your account is not active. Please contact your administrator.",
+    );
   }
 
   if (isAccountLocked(user)) {

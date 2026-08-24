@@ -18,6 +18,30 @@ export const findRecentAuditLogs = (take) =>
     },
   });
 
+/** Powers the full Audit Logs page (paginated, filterable) -- findRecentAuditLogs above stays a fixed-size feed for the dashboard widget. */
+export const findAuditLogs = ({ where, orderBy, skip, take }) =>
+  prisma.auditLog.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      user: { select: { id: true, fullName: true, username: true } },
+    },
+  });
+
+export const countAuditLogs = (where) => prisma.auditLog.count({ where });
+
+/** Distinct entity values actually present in the log, for the Audit Logs page's entity filter dropdown. */
+export const findDistinctAuditEntities = async () => {
+  const rows = await prisma.auditLog.findMany({
+    distinct: ["entity"],
+    select: { entity: true },
+    orderBy: { entity: "asc" },
+  });
+  return rows.map((row) => row.entity);
+};
+
 /** Users holding a given role, optionally further scoped to a department/unit -- e.g. "Supervisors in my department". */
 export const countUsersByRole = ({ departmentId, unitId, roleCode }) =>
   prisma.user.count({
