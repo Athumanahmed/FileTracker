@@ -43,6 +43,18 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: FileTracker-redis
+    restart: always
+    ports:
+      - "6379:6379" # exposed to the host for local redis-cli/tooling access
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./server
@@ -59,10 +71,13 @@ services:
       MINIO_ACCESS_KEY: fileTrackerMinioAdmin
       MINIO_SECRET_KEY: FileTracker-Minio-@2026
       CLIENT_URL: http://localhost:3000
+      REDIS_URL: redis://redis:6379
     depends_on:
       db:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - ./server:/app

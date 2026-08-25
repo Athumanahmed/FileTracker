@@ -41,6 +41,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: FileTracker-redis
+    restart: always
+    # No ports exposed to the host on purpose -- Redis has no auth
+    # configured, so it must stay reachable only from other containers on
+    # this compose network (backend talks to it as `redis:6379`), never
+    # from outside the VPS.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./server
@@ -56,10 +70,13 @@ services:
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: fileTrackerMinioAdmin
       MINIO_SECRET_KEY: FileTracker-Minio-@2026
+      REDIS_URL: redis://redis:6379
     depends_on:
       db:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "5051:5051"
