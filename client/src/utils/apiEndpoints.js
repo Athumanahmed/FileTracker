@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     ADMIN_AUDIT_LOG_ENTITIES: "/api/v1/dashboard/admin/audit-logs/entities",
     SCOPED_SUMMARY: "/api/v1/dashboard/scoped/summary",
     SCOPED_RECENT_ACTIVITY: "/api/v1/dashboard/scoped/recent-activity",
+    MY_RECENT_ACTIVITY: "/api/v1/dashboard/my/recent-activity",
   },
 
   DEPARTMENTS: {

@@ -225,6 +225,12 @@ export const getScopedRecentActivity = (accessToken, limit = 10) =>
     params: { limit },
   });
 
+export const getMyRecentActivity = (accessToken, limit = 10) =>
+  apiClient.get(API_ENDPOINTS.DASHBOARD.MY_RECENT_ACTIVITY, {
+    ...authHeader(accessToken),
+    params: { limit },
+  });
+
 // -- Files (File Lifecycle Management) ---------------------------------------
 
 export const getFiles = (accessToken, params = {}) =>

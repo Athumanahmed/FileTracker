@@ -116,9 +116,19 @@ const RowActionsMenu = ({ actions = [], align = "end", label = "Row actions" }) 
     // DataTable's overflow-auto wrapper) don't bubble, but capture-phase
     // listeners on window still see them. Closing on scroll sidesteps
     // having to continuously reposition a fixed-position portal.
-    window.addEventListener("scroll", close, true);
+    //
+    // Attaching this on the very next frame (not synchronously) matters --
+    // the trigger's own opening click can itself cause a native scroll
+    // (e.g. the browser nudging a focused element into view, or a trackpad
+    // tap registering a sub-pixel wheel delta), which fires 'scroll'
+    // asynchronously and would otherwise land right after this listener
+    // attaches, closing the menu the same click just opened it with.
+    const raf = requestAnimationFrame(() => {
+      window.addEventListener("scroll", close, true);
+    });
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("scroll", close, true);
       document.removeEventListener("keydown", handleKeyDown);
     };

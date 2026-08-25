@@ -35,6 +35,8 @@ import ScopedDashboard from "../../pages/ScopedDashboard";
 import ScopedUsers from "../../pages/ScopedUsers";
 import UserDetails from "../../pages/UserDetails";
 import AuditLogs from "../../pages/admin/AuditLogs";
+import OfficerDashboard from "../../pages/officer/OfficerDashboard";
+import DirectorDashboard from "../../pages/director/DirectorDashboard";
 import CreateSupervisor from "../../pages/hod/CreateSupervisor";
 import CreateOfficer from "../../pages/supervisor/CreateOfficer";
 import Profile from "../../pages/Profile";
@@ -410,10 +412,7 @@ const AppRoutes = (
 
       {/* Director -- /director, /director/files, /director/workflow, /director/reports. */}
       <Route path="director" element={actorShell(ROLES.DIRECTOR)}>
-        <Route
-          index
-          element={<PlaceholderPage title="Director Dashboard" description="Your dashboard is being tailored for your role." />}
-        />
+        <Route index element={<DirectorDashboard />} />
         {notificationsRoute}
         {filesRoute}
         {fileDetailsRoute}
@@ -434,10 +433,7 @@ const AppRoutes = (
 
       {/* Officer -- /officer, /officer/files, /officer/workflow, /officer/reports. */}
       <Route path="officer" element={actorShell(ROLES.OFFICER)}>
-        <Route
-          index
-          element={<PlaceholderPage title="Officer Dashboard" description="Your dashboard is being tailored for your role." />}
-        />
+        <Route index element={<OfficerDashboard />} />
         {notificationsRoute}
         {filesRoute}
         {fileDetailsRoute}
