@@ -247,6 +247,11 @@ export const createFile = (accessToken, formData) =>
 export const getFileCategories = (accessToken) =>
   apiClient.get(API_ENDPOINTS.FILE_CATEGORIES.LIST, authHeader(accessToken));
 
+// -- Search (Redis-cached global search across files + citizens) -------------
+
+export const globalSearch = (accessToken, params = {}) =>
+  apiClient.get(API_ENDPOINTS.SEARCH.GLOBAL, { ...authHeader(accessToken), params });
+
 // -- Attachments ---------------------------------------------------------------
 // Uploads pass a FormData body -- axios detects it and lets the browser set
 // the multipart boundary itself, overriding apiClient's JSON default

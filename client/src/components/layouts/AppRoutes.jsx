@@ -49,6 +49,7 @@ import RegisterFile from "../../pages/RegisterFile";
 import Workflow from "../../pages/Workflow";
 import Reports from "../../pages/Reports";
 import Notifications from "../../pages/Notifications";
+import SearchPage from "../../pages/Search";
 
 /**
  * Every actor owns its own top-level branch (/admin, /hod, /registry, ...)
@@ -107,6 +108,18 @@ const fileDetailsRoute = (
     element={
       <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
         <FileDetails />
+      </RoleBasedRoute>
+    }
+  />
+);
+// Same FILES.READ gate as filesRoute -- Global Search surfaces nothing the
+// Files list wouldn't already expose, just found by different fields.
+const searchRoute = (
+  <Route
+    path="search"
+    element={
+      <RoleBasedRoute requiredPermission={PERMISSIONS.FILES_READ}>
+        <SearchPage />
       </RoleBasedRoute>
     }
   />
@@ -220,6 +233,7 @@ const AppRoutes = (
         <Route index element={<AdminDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {workflowRoute}
         {archiveRoute}
@@ -361,6 +375,7 @@ const AppRoutes = (
         <Route index element={<ScopedDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
@@ -388,6 +403,7 @@ const AppRoutes = (
         <Route index element={<ScopedDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
@@ -415,6 +431,7 @@ const AppRoutes = (
         <Route index element={<DirectorDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
@@ -425,6 +442,7 @@ const AppRoutes = (
         <Route index element={<RegistryDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {registerFileRoute}
         {workflowRoute}
@@ -436,6 +454,7 @@ const AppRoutes = (
         <Route index element={<OfficerDashboard />} />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {workflowRoute}
         {reportsRoute}
@@ -449,6 +468,7 @@ const AppRoutes = (
         />
         {notificationsRoute}
         {filesRoute}
+        {searchRoute}
         {fileDetailsRoute}
         {archiveRoute}
       </Route>
