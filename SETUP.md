@@ -387,3 +387,18 @@ Don't run this alongside the Docker `backend`/`frontend` services on the
 same ports — whichever started second will fail to bind, and if the Docker
 production containers are already up, they'll silently serve stale code
 instead of your local changes.
+
+
+
+<!-- locally -->
+
+cd server
+
+# 1. Apply all existing migrations to your freshly cleared local PostgreSQL DB
+npx prisma migrate deploy
+
+# 2. Generate the Prisma Client (usually automatic, but safe to run explicitly)
+npx prisma generate
+
+# 3. Run all seeders (roles, permissions, departments, admin user, test users, etc.)
+npx prisma db seed
