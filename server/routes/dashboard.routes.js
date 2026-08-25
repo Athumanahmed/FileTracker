@@ -51,4 +51,14 @@ router.get(
   dashboardController.getScopedRecentActivity,
 );
 
+// Self-scoped -- every authenticated user's own recent actions (same
+// handler as /scoped/recent-activity, since getScopedRecentActivity's own
+// query is already actor-scoped with no administrative-scope check inside
+// it). No permission gate beyond being authenticated, same reasoning as
+// /auth/me and notifications -- this can never expose another user's or
+// org-wide data. Powers dashboards for roles that hold no administrative
+// scope at all (Officer, Director, Registry, Archive, ...), which
+// DASHBOARD.READ_SCOPED_SUMMARY was never meant to gate for them.
+router.get("/my/recent-activity", authenticate, dashboardController.getScopedRecentActivity);
+
 export default router;

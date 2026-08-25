@@ -507,7 +507,21 @@ export const transitionWorkflow = async ({ fileId, action, toUserId, remarks, ac
   return { instance: sanitizeInstance(result.instance), currentAssignment: sanitizeAssignment(finalAssignment) };
 };
 
-/** Claims an unclaimed, department-queued assignment -- acknowledging receipt, not a workflow action. */
+/**
+ * Claims an unclaimed, department-queued assignment -- acknowledging
+ * receipt, not a workflow action.
+ *
+ * The department check only makes sense for a department/unit-scoped actor
+ * (HOD/Supervisor/Officer) -- it narrows "anyone in the file's own
+ * department" down to the right one. A department-less, global-scope actor
+ * (Director, Registry, Archive, ICT Admin, ...) can never have a
+ * department, so that check would reject them unconditionally regardless
+ * of role -- e.g. every file starts its "Director Review" step queued to
+ * the file's own department (see startWorkflow's assignedDepartmentId),
+ * even though DIRECTOR itself is department-less by design. For such
+ * actors, the step's own role/position requirement (assertTargetEligible
+ * below) is the sole eligibility gate instead.
+ */
 export const claimAssignment = async ({ fileId, actorId, ipAddress }) => {
   const currentAssignment = await fileAssignmentRepository.findCurrentByFileId(fileId);
   if (!currentAssignment) throw new AppError(404, "File has no current assignment");
@@ -515,12 +529,21 @@ export const claimAssignment = async ({ fileId, actorId, ipAddress }) => {
   if (!currentAssignment.assignedDepartmentId) throw new AppError(409, "This assignment has no department queue to claim from");
 
   const actor = await authRepository.findAuthenticatedUser(actorId);
-  if (!actor || actor.department?.id !== currentAssignment.assignedDepartmentId) {
+  if (!actor) throw new AppError(404, "Actor not found");
+
+  const step = currentAssignment.workflowStep;
+  const hasRoleOrPositionRequirement = Boolean(step?.requiredRoleId || step?.requiredPositionId);
+
+  if (actor.department?.id) {
+    if (actor.department.id !== currentAssignment.assignedDepartmentId) {
+      throw new AppError(403, "You do not belong to the department this file is queued in");
+    }
+  } else if (!hasRoleOrPositionRequirement) {
     throw new AppError(403, "You do not belong to the department this file is queued in");
   }
 
-  if (currentAssignment.workflowStep) {
-    await assertTargetEligible({ step: currentAssignment.workflowStep, toUserId: actorId });
+  if (step) {
+    await assertTargetEligible({ step, toUserId: actorId });
   }
 
   const movement = await fileMovementRepository.findPendingDepartmentMovement(fileId, currentAssignment.assignedDepartmentId);
