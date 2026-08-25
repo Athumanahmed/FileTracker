@@ -229,6 +229,13 @@ export const createAuditLog = (data) => prisma.auditLog.create({ data });
 /**
  * Permissions are never cached on the token or hardcoded in middleware --
  * every check goes back to the database (Role -> RolePermission -> Permission).
+ *
+ * Superseded as authorize()'s actual per-request check by
+ * findPermissionCodesForUser below (see
+ * repositories/permissionCache.repository.js's Redis cache-aside wrapper
+ * around it) -- kept here, correct and unused, as the Redis roadmap's own
+ * documented rollback path: revert authorize() to call this directly and
+ * the cache becomes dead code you can remove independently.
  */
 export const userHasPermission = async (userId, permissionCode) => {
   const count = await prisma.userRole.count({
@@ -244,4 +251,35 @@ export const userHasPermission = async (userId, permissionCode) => {
   });
 
   return count > 0;
+};
+
+/**
+ * Every permission code the user's active roles grant, deduplicated --
+ * same isActive rules as userHasPermission above (active role, active
+ * permission), just resolved as one full set instead of one yes/no check
+ * per call. This is what authorize() actually calls now, via
+ * permissionCache.repository.js's cache-aside wrapper.
+ */
+export const findPermissionCodesForUser = async (userId) => {
+  const userRoles = await prisma.userRole.findMany({
+    where: { userId, role: { isActive: true } },
+    select: {
+      role: {
+        select: {
+          permissions: {
+            where: { permission: { isActive: true } },
+            select: { permission: { select: { code: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  const codes = new Set();
+  for (const { role } of userRoles) {
+    for (const { permission } of role.permissions) {
+      codes.add(permission.code);
+    }
+  }
+  return [...codes];
 };

@@ -1,5 +1,6 @@
 import * as reportRepository from "../repositories/report.repository.js";
 import * as authRepository from "../repositories/auth.repository.js";
+import { cached, CACHE_TTL } from "../utils/cache.js";
 
 // "Pending" is defined as "not yet terminal" rather than an enumerated
 // list of in-flight statuses -- robust to a future FileStatus value
@@ -50,88 +51,97 @@ const resolveScopedUserId = async ({ userId, actorId }) => {
 
 export const getDashboardKpis = async ({ departmentId, actorId }) => {
   const scopedDepartmentId = await resolveScopedDepartmentId({ departmentId, actorId });
-  const [files, assignments] = await Promise.all([
-    reportRepository.findAllForReporting(),
-    reportRepository.findCurrentAssignmentsForReporting(),
-  ]);
 
-  const scopedFiles = scopedDepartmentId ? files.filter((f) => f.departmentId === scopedDepartmentId) : files;
-  const scopedAssignments = scopedDepartmentId
-    ? assignments.filter((a) => a.file.departmentId === scopedDepartmentId)
-    : assignments;
+  return cached(`kpis:dashboard:${scopedDepartmentId || "all"}`, CACHE_TTL.SHORT, async () => {
+    const [files, assignments] = await Promise.all([
+      reportRepository.findAllForReporting(),
+      reportRepository.findCurrentAssignmentsForReporting(),
+    ]);
 
-  const pending = scopedFiles.filter((f) => !TERMINAL_STATUSES.includes(f.status)).length;
-  const completed = scopedFiles.filter((f) => f.status === "COMPLETED").length;
-  const overdue = scopedAssignments.filter((a) => a.dueDate && a.dueDate < new Date()).length;
+    const scopedFiles = scopedDepartmentId ? files.filter((f) => f.departmentId === scopedDepartmentId) : files;
+    const scopedAssignments = scopedDepartmentId
+      ? assignments.filter((a) => a.file.departmentId === scopedDepartmentId)
+      : assignments;
 
-  const processingDays = scopedFiles.filter((f) => f.closedAt).map((f) => daysBetween(f.createdAt, f.closedAt));
+    const pending = scopedFiles.filter((f) => !TERMINAL_STATUSES.includes(f.status)).length;
+    const completed = scopedFiles.filter((f) => f.status === "COMPLETED").length;
+    const overdue = scopedAssignments.filter((a) => a.dueDate && a.dueDate < new Date()).length;
 
-  return {
-    totalFiles: scopedFiles.length,
-    pending,
-    completed,
-    overdue,
-    avgProcessingDays: average(processingDays),
-    statusDistribution: [...countBy(scopedFiles, (f) => f.status)].map(([status, count]) => ({ status, count })),
-  };
+    const processingDays = scopedFiles.filter((f) => f.closedAt).map((f) => daysBetween(f.createdAt, f.closedAt));
+
+    return {
+      totalFiles: scopedFiles.length,
+      pending,
+      completed,
+      overdue,
+      avgProcessingDays: average(processingDays),
+      statusDistribution: [...countBy(scopedFiles, (f) => f.status)].map(([status, count]) => ({ status, count })),
+    };
+  });
 };
 
 export const getDepartmentPerformance = async ({ departmentId, actorId }) => {
   const scopedDepartmentId = await resolveScopedDepartmentId({ departmentId, actorId });
-  const [files, assignments] = await Promise.all([
-    reportRepository.findAllForReporting(),
-    reportRepository.findCurrentAssignmentsForReporting(),
-  ]);
 
-  const scopedFiles = scopedDepartmentId ? files.filter((f) => f.departmentId === scopedDepartmentId) : files;
+  return cached(`kpis:department-performance:${scopedDepartmentId || "all"}`, CACHE_TTL.LONG, async () => {
+    const [files, assignments] = await Promise.all([
+      reportRepository.findAllForReporting(),
+      reportRepository.findCurrentAssignmentsForReporting(),
+    ]);
 
-  const buckets = new Map();
-  for (const file of scopedFiles) {
-    if (!buckets.has(file.departmentId)) {
-      buckets.set(file.departmentId, { department: file.department, total: 0, pending: 0, completed: 0, overdue: 0, processingDays: [] });
+    const scopedFiles = scopedDepartmentId ? files.filter((f) => f.departmentId === scopedDepartmentId) : files;
+
+    const buckets = new Map();
+    for (const file of scopedFiles) {
+      if (!buckets.has(file.departmentId)) {
+        buckets.set(file.departmentId, { department: file.department, total: 0, pending: 0, completed: 0, overdue: 0, processingDays: [] });
+      }
+      const bucket = buckets.get(file.departmentId);
+      bucket.total += 1;
+      if (!TERMINAL_STATUSES.includes(file.status)) bucket.pending += 1;
+      if (file.status === "COMPLETED") bucket.completed += 1;
+      if (file.closedAt) bucket.processingDays.push(daysBetween(file.createdAt, file.closedAt));
     }
-    const bucket = buckets.get(file.departmentId);
-    bucket.total += 1;
-    if (!TERMINAL_STATUSES.includes(file.status)) bucket.pending += 1;
-    if (file.status === "COMPLETED") bucket.completed += 1;
-    if (file.closedAt) bucket.processingDays.push(daysBetween(file.createdAt, file.closedAt));
-  }
-  for (const assignment of assignments) {
-    const bucket = buckets.get(assignment.file.departmentId);
-    if (bucket && assignment.dueDate && assignment.dueDate < new Date()) bucket.overdue += 1;
-  }
+    for (const assignment of assignments) {
+      const bucket = buckets.get(assignment.file.departmentId);
+      if (bucket && assignment.dueDate && assignment.dueDate < new Date()) bucket.overdue += 1;
+    }
 
-  return [...buckets.values()]
-    .map((b) => ({
-      department: b.department,
-      totalFiles: b.total,
-      pending: b.pending,
-      completed: b.completed,
-      overdue: b.overdue,
-      avgProcessingDays: average(b.processingDays),
-    }))
-    .sort((a, b) => b.totalFiles - a.totalFiles);
+    return [...buckets.values()]
+      .map((b) => ({
+        department: b.department,
+        totalFiles: b.total,
+        pending: b.pending,
+        completed: b.completed,
+        overdue: b.overdue,
+        avgProcessingDays: average(b.processingDays),
+      }))
+      .sort((a, b) => b.totalFiles - a.totalFiles);
+  });
 };
 
 /** "Officer Performance" = current workload (pending/overdue) plus how many files they were the final handler on when it completed. */
 export const getOfficerPerformance = async ({ userId, actorId }) => {
   const scopedUserId = await resolveScopedUserId({ userId, actorId });
-  const assignments = await reportRepository.findCurrentAssignmentsForReporting();
 
-  const scoped = scopedUserId ? assignments.filter((a) => a.assignedToId === scopedUserId) : assignments;
+  return cached(`kpis:officer-performance:${scopedUserId || "all"}`, CACHE_TTL.LONG, async () => {
+    const assignments = await reportRepository.findCurrentAssignmentsForReporting();
 
-  const buckets = new Map();
-  for (const assignment of scoped) {
-    if (!buckets.has(assignment.assignedToId)) {
-      buckets.set(assignment.assignedToId, { officer: assignment.assignedTo, currentPending: 0, currentOverdue: 0, completedAsHandler: 0 });
+    const scoped = scopedUserId ? assignments.filter((a) => a.assignedToId === scopedUserId) : assignments;
+
+    const buckets = new Map();
+    for (const assignment of scoped) {
+      if (!buckets.has(assignment.assignedToId)) {
+        buckets.set(assignment.assignedToId, { officer: assignment.assignedTo, currentPending: 0, currentOverdue: 0, completedAsHandler: 0 });
+      }
+      const bucket = buckets.get(assignment.assignedToId);
+      if (assignment.file.status === "COMPLETED") bucket.completedAsHandler += 1;
+      else if (!TERMINAL_STATUSES.includes(assignment.file.status)) bucket.currentPending += 1;
+      if (assignment.dueDate && assignment.dueDate < new Date()) bucket.currentOverdue += 1;
     }
-    const bucket = buckets.get(assignment.assignedToId);
-    if (assignment.file.status === "COMPLETED") bucket.completedAsHandler += 1;
-    else if (!TERMINAL_STATUSES.includes(assignment.file.status)) bucket.currentPending += 1;
-    if (assignment.dueDate && assignment.dueDate < new Date()) bucket.currentOverdue += 1;
-  }
 
-  return [...buckets.values()].sort((a, b) => b.completedAsHandler - a.completedAsHandler);
+    return [...buckets.values()].sort((a, b) => b.completedAsHandler - a.completedAsHandler);
+  });
 };
 
 export const getStatusDistribution = async ({ departmentId, actorId }) => {
@@ -145,23 +155,25 @@ export const getStatusDistribution = async ({ departmentId, actorId }) => {
 /** Chart-ready time series: file registrations bucketed by day or month -- data shaped for a frontend charting library, not a rendered image. */
 export const getRegistrationsOverTime = async ({ bucket = "month", dateFrom, dateTo, departmentId, actorId }) => {
   const scopedDepartmentId = await resolveScopedDepartmentId({ departmentId, actorId });
-  const files = await reportRepository.findAllForReporting();
+  const cacheKey = `kpis:registrations-over-time:${scopedDepartmentId || "all"}:${bucket}:${dateFrom || ""}:${dateTo || ""}`;
 
-  const from = dateFrom ? new Date(dateFrom) : null;
-  const to = dateTo ? new Date(dateTo) : null;
+  return cached(cacheKey, CACHE_TTL.LONG, async () => {
+    const files = await reportRepository.findAllForReporting();
 
-  const scoped = files.filter(
-    (f) =>
-      (!scopedDepartmentId || f.departmentId === scopedDepartmentId) &&
-      (!from || f.createdAt >= from) &&
-      (!to || f.createdAt <= to),
-  );
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo) : null;
 
-  const periodKey = (date) => (bucket === "day" ? date.toISOString().slice(0, 10) : date.toISOString().slice(0, 7));
+    const scoped = files.filter(
+      (f) =>
+        (!scopedDepartmentId || f.departmentId === scopedDepartmentId) &&
+        (!from || f.createdAt >= from) &&
+        (!to || f.createdAt <= to),
+    );
 
-  const series = [...countBy(scoped, (f) => periodKey(f.createdAt))]
-    .map(([period, count]) => ({ period, count }))
-    .sort((a, b) => a.period.localeCompare(b.period));
+    const periodKey = (date) => (bucket === "day" ? date.toISOString().slice(0, 10) : date.toISOString().slice(0, 7));
 
-  return series;
+    return [...countBy(scoped, (f) => periodKey(f.createdAt))]
+      .map(([period, count]) => ({ period, count }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+  });
 };

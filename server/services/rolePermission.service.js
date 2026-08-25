@@ -5,6 +5,18 @@ import * as authRepository from "../repositories/auth.repository.js";
 import * as rolePermissionRepository from "../repositories/rolePermission.repository.js";
 import * as roleRepository from "../repositories/role.repository.js";
 import * as permissionRepository from "../repositories/permission.repository.js";
+import * as userRepository from "../repositories/user.repository.js";
+import * as permissionCacheRepository from "../repositories/permissionCache.repository.js";
+
+/**
+ * A role's own permission grants changed -- every current holder's cached
+ * permission set is now stale, not just one user's (contrast with
+ * userRoleAssignment.service.js, which invalidates a single target).
+ */
+const invalidateCacheForRoleHolders = async (roleId) => {
+  const userIds = await userRepository.findUserIdsByRoleId(roleId);
+  await permissionCacheRepository.invalidatePermissionCacheForUsers(userIds);
+};
 
 const SORTABLE_FIELDS = ["assignedAt"];
 
@@ -87,6 +99,8 @@ export const assignPermission = async ({ actorId, roleId, permissionId, ipAddres
     ipAddress,
   });
 
+  await invalidateCacheForRoleHolders(roleId);
+
   return { roleId, permissionId, assignedAt: assignment.assignedAt };
 };
 
@@ -110,6 +124,8 @@ export const revokePermission = async ({ actorId, roleId, permissionId, ipAddres
     description: `Revoked ${permission?.code} from ${role?.code}`,
     ipAddress,
   });
+
+  await invalidateCacheForRoleHolders(roleId);
 
   return { roleId, permissionId };
 };
@@ -175,6 +191,8 @@ export const syncRolePermissions = async ({ actorId, roleId, permissionIds, ipAd
     description: `Synced permissions for role ${role.code} (+${toAdd.length}/-${toRemove.length})`,
     ipAddress,
   });
+
+  await invalidateCacheForRoleHolders(roleId);
 
   return { roleId, permissionIds: uniqueIds, added: toAdd.length, removed: toRemove.length };
 };

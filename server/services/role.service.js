@@ -10,6 +10,14 @@ import {
 import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as roleRepository from "../repositories/role.repository.js";
+import * as userRepository from "../repositories/user.repository.js";
+import * as permissionCacheRepository from "../repositories/permissionCache.repository.js";
+
+/** Whether a role can grant/deny anything just changed -- every current holder's cached permission set is now stale. */
+const invalidateCacheForRoleHolders = async (roleId) => {
+  const userIds = await userRepository.findUserIdsByRoleId(roleId);
+  await permissionCacheRepository.invalidatePermissionCacheForUsers(userIds);
+};
 
 const SORTABLE_FIELDS = ["name", "code", "createdAt", "updatedAt"];
 const SEARCHABLE_FIELDS = ["name", "code"];
@@ -224,6 +232,11 @@ export const deactivateRole = async ({ id, actorId, ipAddress }) => {
     ipAddress,
   });
 
+  // Blocked above while any *active* user still holds this role, so
+  // there's normally nothing live to invalidate -- still called for the
+  // inactive-user-holder edge case, and because it's cheap either way.
+  await invalidateCacheForRoleHolders(id);
+
   return sanitize(result.role);
 };
 
@@ -242,6 +255,8 @@ export const reactivateRole = async ({ id, actorId, ipAddress }) => {
     after: snapshot(updated),
     ipAddress,
   });
+
+  await invalidateCacheForRoleHolders(id);
 
   return sanitize(updated);
 };

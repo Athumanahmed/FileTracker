@@ -58,4 +58,10 @@ export const securityConfig = {
     process.env.FORCE_CHANGE_PASSWORD_RATE_LIMIT_WINDOW || "15m",
   ),
   forceChangePasswordRateLimitMax: Number(process.env.FORCE_CHANGE_PASSWORD_RATE_LIMIT_MAX) || 5,
+
+  // Global Search is a fan-out (files + citizens) query hit on every
+  // keystroke by a typeahead UI -- generous enough for real typing with a
+  // debounce in front of it, tight enough to cap a scripted scrape.
+  searchRateLimitWindowMs: parseDurationToMs(process.env.SEARCH_RATE_LIMIT_WINDOW || "1m"),
+  searchRateLimitMax: Number(process.env.SEARCH_RATE_LIMIT_MAX) || 30,
 };

@@ -3,6 +3,7 @@ import { AUDIT_ACTIONS } from "../utils/auditActions.js";
 import { ADMIN_SCOPE_BY_ROLE } from "../config/organizationalHierarchy.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as userRepository from "../repositories/user.repository.js";
+import * as permissionCacheRepository from "../repositories/permissionCache.repository.js";
 import {
   resolveActingRole,
   assertNoEscalation,
@@ -80,6 +81,8 @@ export const assignRoleToUser = async ({ actorId, targetUserId, roleCode, ipAddr
     ipAddress,
   });
 
+  await permissionCacheRepository.invalidatePermissionCache(target.id);
+
   return { userId: target.id, roleId: role.id, roleCode: role.code, assignedAt: assigned.assignedAt };
 };
 
@@ -118,6 +121,8 @@ export const removeRoleFromUser = async ({ actorId, targetUserId, roleCode, ipAd
     metadata: { before: { roleCode: role.code }, after: null },
     ipAddress,
   });
+
+  await permissionCacheRepository.invalidatePermissionCache(target.id);
 
   return { userId: target.id, roleId: role.id, roleCode: role.code };
 };

@@ -20,6 +20,12 @@ export const findActiveRoleCodesForUser = async (userId) => {
   return userRoles.map((userRole) => userRole.role.code);
 };
 
+/** Every user currently assigned a given role -- powers permission-cache invalidation when a role's own grants change (see rolePermission.service.js, role.service.js). */
+export const findUserIdsByRoleId = async (roleId) => {
+  const userRoles = await prisma.userRole.findMany({ where: { roleId }, select: { userId: true } });
+  return userRoles.map((userRole) => userRole.userId);
+};
+
 export const findUserByUsername = (username) => prisma.user.findUnique({ where: { username } });
 
 export const findUserByEmail = (email) => prisma.user.findUnique({ where: { email } });

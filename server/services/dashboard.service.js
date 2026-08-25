@@ -4,25 +4,30 @@ import * as authRepository from "../repositories/auth.repository.js";
 import { resolveActorScope } from "./userScope.service.js";
 import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import { parsePagination, buildPaginationMeta } from "../utils/queryOptions.js";
+import { cached, CACHE_TTL } from "../utils/cache.js";
 
-export const getAdminSummary = async () => {
-  const activeUserWhere = { deletedAt: null };
+// Global -- identical for every SYSTEM_ADMIN caller (no per-actor scoping
+// like report.service.js's KPIs have), so one shared key is both correct
+// and more cache-efficient than keying by actorId.
+export const getAdminSummary = () =>
+  cached("kpis:admin-summary", CACHE_TTL.SHORT, async () => {
+    const activeUserWhere = { deletedAt: null };
 
-  const [users, departments, units, positions, roles, permissions, inactiveUsers] = await Promise.all([
-    withWeeklyTrend(dashboardRepository.countUsers, activeUserWhere),
-    withWeeklyTrend(dashboardRepository.countDepartments, { isActive: true }),
-    withWeeklyTrend(dashboardRepository.countUnits, { isActive: true }),
-    withWeeklyTrend(dashboardRepository.countPositions, { isActive: true }),
-    withWeeklyTrend(dashboardRepository.countRoles, { isActive: true }),
-    withWeeklyTrend(dashboardRepository.countPermissions, { isActive: true }),
-    dashboardRepository.countUsers({ ...activeUserWhere, isActive: false }),
-  ]);
+    const [users, departments, units, positions, roles, permissions, inactiveUsers] = await Promise.all([
+      withWeeklyTrend(dashboardRepository.countUsers, activeUserWhere),
+      withWeeklyTrend(dashboardRepository.countDepartments, { isActive: true }),
+      withWeeklyTrend(dashboardRepository.countUnits, { isActive: true }),
+      withWeeklyTrend(dashboardRepository.countPositions, { isActive: true }),
+      withWeeklyTrend(dashboardRepository.countRoles, { isActive: true }),
+      withWeeklyTrend(dashboardRepository.countPermissions, { isActive: true }),
+      dashboardRepository.countUsers({ ...activeUserWhere, isActive: false }),
+    ]);
 
-  return {
-    stats: { users, departments, units, positions, roles, permissions },
-    alerts: { inactiveUsers },
-  };
-};
+    return {
+      stats: { users, departments, units, positions, roles, permissions },
+      alerts: { inactiveUsers },
+    };
+  });
 
 /**
  * Every CRUD module logs `description: "${action} (${entityId})"` at write
@@ -74,18 +79,22 @@ const humanize = (log) => {
   return log.description || log.action;
 };
 
-export const getRecentActivity = async (limit) => {
-  const logs = await dashboardRepository.findRecentAuditLogs(limit);
+// Global (same feed for every admin), keyed by limit since a caller
+// requesting a longer/shorter feed shouldn't get a truncated/padded
+// cached result meant for a different limit.
+export const getRecentActivity = (limit) =>
+  cached(`kpis:recent-activity:${limit}`, CACHE_TTL.SHORT, async () => {
+    const logs = await dashboardRepository.findRecentAuditLogs(limit);
 
-  return logs.map((log) => ({
-    id: log.id,
-    action: log.action,
-    entity: log.entity,
-    description: humanize(log),
-    performedBy: log.user?.fullName || log.user?.username || "System",
-    createdAt: log.createdAt,
-  }));
-};
+    return logs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      entity: log.entity,
+      description: humanize(log),
+      performedBy: log.user?.fullName || log.user?.username || "System",
+      createdAt: log.createdAt,
+    }));
+  });
 
 /**
  * Builds the AuditLog.findMany `where` for the full Audit Logs page --
@@ -156,60 +165,65 @@ const SUBORDINATE_LABEL_BY_SCOPE = { DEPARTMENT: "Supervisors", UNIT: "Officers"
  * don't scope to a single department/unit -- just the people and (for a
  * department) units actually within the actor's own reach.
  */
-export const getScopedSummary = async (actorId) => {
-  const actor = await authRepository.findAuthenticatedUser(actorId);
-  if (!actor) throw new AppError(404, "User not found");
+// Keyed by actorId, not the resolved department/unit -- simpler (no need
+// to resolve scope before even checking the cache) at the minor cost of
+// not sharing one cache entry across two peers in the same department/unit.
+export const getScopedSummary = (actorId) =>
+  cached(`kpis:scoped-summary:${actorId}`, CACHE_TTL.SHORT, async () => {
+    const actor = await authRepository.findAuthenticatedUser(actorId);
+    if (!actor) throw new AppError(404, "User not found");
 
-  const roleCodes = actor.roles.map((userRole) => userRole.role.code);
-  const { scopeType } = resolveActorScope(roleCodes);
+    const roleCodes = actor.roles.map((userRole) => userRole.role.code);
+    const { scopeType } = resolveActorScope(roleCodes);
 
-  if (scopeType !== "DEPARTMENT" && scopeType !== "UNIT") {
-    throw new AppError(403, "Your role has no scoped dashboard to view");
-  }
+    if (scopeType !== "DEPARTMENT" && scopeType !== "UNIT") {
+      throw new AppError(403, "Your role has no scoped dashboard to view");
+    }
 
-  const departmentId = actor.department?.id ?? null;
-  const unitId = scopeType === "UNIT" ? (actor.unit?.id ?? null) : null;
-  const activeUserWhere = { deletedAt: null, departmentId, ...(unitId ? { unitId } : {}) };
+    const departmentId = actor.department?.id ?? null;
+    const unitId = scopeType === "UNIT" ? (actor.unit?.id ?? null) : null;
+    const activeUserWhere = { deletedAt: null, departmentId, ...(unitId ? { unitId } : {}) };
 
-  const [users, activeCount, inactiveCount, unitsCount, subordinateCount] = await Promise.all([
-    withWeeklyTrend(dashboardRepository.countUsers, activeUserWhere),
-    dashboardRepository.countUsers({ ...activeUserWhere, isActive: true }),
-    dashboardRepository.countUsers({ ...activeUserWhere, isActive: false }),
-    scopeType === "DEPARTMENT" ? dashboardRepository.countUnits({ isActive: true, departmentId }) : Promise.resolve(null),
-    dashboardRepository.countUsersByRole({
-      departmentId,
-      unitId,
-      roleCode: SUBORDINATE_ROLE_BY_SCOPE[scopeType],
-    }),
-  ]);
+    const [users, activeCount, inactiveCount, unitsCount, subordinateCount] = await Promise.all([
+      withWeeklyTrend(dashboardRepository.countUsers, activeUserWhere),
+      dashboardRepository.countUsers({ ...activeUserWhere, isActive: true }),
+      dashboardRepository.countUsers({ ...activeUserWhere, isActive: false }),
+      scopeType === "DEPARTMENT" ? dashboardRepository.countUnits({ isActive: true, departmentId }) : Promise.resolve(null),
+      dashboardRepository.countUsersByRole({
+        departmentId,
+        unitId,
+        roleCode: SUBORDINATE_ROLE_BY_SCOPE[scopeType],
+      }),
+    ]);
 
-  const percentOf = (count) => (users.total > 0 ? Math.round((count / users.total) * 1000) / 10 : 0);
+    const percentOf = (count) => (users.total > 0 ? Math.round((count / users.total) * 1000) / 10 : 0);
 
-  return {
-    scope: {
-      type: scopeType,
-      name: (scopeType === "DEPARTMENT" ? actor.department?.name : actor.unit?.name) ?? null,
-    },
-    users: {
-      total: users,
-      active: { count: activeCount, percent: percentOf(activeCount) },
-      inactive: { count: inactiveCount, percent: percentOf(inactiveCount) },
-    },
-    unitsCount,
-    subordinates: { label: SUBORDINATE_LABEL_BY_SCOPE[scopeType], count: subordinateCount },
-  };
-};
+    return {
+      scope: {
+        type: scopeType,
+        name: (scopeType === "DEPARTMENT" ? actor.department?.name : actor.unit?.name) ?? null,
+      },
+      users: {
+        total: users,
+        active: { count: activeCount, percent: percentOf(activeCount) },
+        inactive: { count: inactiveCount, percent: percentOf(inactiveCount) },
+      },
+      unitsCount,
+      subordinates: { label: SUBORDINATE_LABEL_BY_SCOPE[scopeType], count: subordinateCount },
+    };
+  });
 
 /** The actor's own recent actions (not their whole department/unit's) -- see dashboard.repository.js#findRecentAuditLogsByUser. */
-export const getScopedRecentActivity = async (actorId, limit) => {
-  const logs = await dashboardRepository.findRecentAuditLogsByUser(actorId, limit);
+export const getScopedRecentActivity = (actorId, limit) =>
+  cached(`kpis:scoped-recent-activity:${actorId}:${limit}`, CACHE_TTL.SHORT, async () => {
+    const logs = await dashboardRepository.findRecentAuditLogsByUser(actorId, limit);
 
-  return logs.map((log) => ({
-    id: log.id,
-    action: log.action,
-    entity: log.entity,
-    description: humanize(log),
-    performedBy: log.user?.fullName || log.user?.username || "System",
-    createdAt: log.createdAt,
-  }));
-};
+    return logs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      entity: log.entity,
+      description: humanize(log),
+      performedBy: log.user?.fullName || log.user?.username || "System",
+      createdAt: log.createdAt,
+    }));
+  });
