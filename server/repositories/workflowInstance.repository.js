@@ -29,6 +29,16 @@ export const findById = (id) => prisma.workflowInstance.findUnique({ where: { id
  */
 export const startInstance = ({ fileId, templateId, firstStepId, assignedToId, assignedDepartmentId, dueDate, performedById, remarks }) =>
   prisma.$transaction(async (tx) => {
+    // Close out the registrar's "opening" assignment (see
+    // file.repository.js#createFileWithAttachments) -- from here on the
+    // workflow owns custody, so there must be exactly one isCurrent row.
+    // updateMany, not update: a no-op if somehow none exists (e.g. a file
+    // registered before this became the norm).
+    await tx.fileAssignment.updateMany({
+      where: { fileId, isCurrent: true },
+      data: { isCurrent: false, status: "COMPLETED", completedAt: new Date() },
+    });
+
     const instance = await tx.workflowInstance.create({
       data: { fileId, templateId, currentStepId: firstStepId, state: "IN_PROGRESS" },
     });
@@ -59,6 +69,10 @@ export const startInstance = ({ fileId, templateId, firstStepId, assignedToId, a
     await tx.fileMovement.create({
       data: {
         fileId,
+        // The person starting the workflow is the file's current holder
+        // (the registrar) -- record them as the source so Movement History
+        // reads "Registrar -> first step" instead of "- -> Unclaimed".
+        fromUserId: performedById,
         toUserId: assignedToId ?? null,
         toDepartmentId: assignedDepartmentId ?? null,
         action: "REGISTER",

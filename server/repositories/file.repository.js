@@ -25,6 +25,27 @@ export const createFileWithAttachments = ({ fileData, attachments }) =>
   prisma.$transaction(async (tx) => {
     const file = await tx.file.create({ data: fileData });
 
+    // "Opening" assignment: the registrar holds the freshly registered file
+    // until they route it into a workflow -- the digital equivalent of the
+    // registry clerk physically holding a new file to write the covering
+    // minute before dispatching it. Custody transfers on startWorkflow,
+    // which closes this row out (see
+    // workflowInstance.repository.js#startInstance). No workflow step and no
+    // dueDate -- it isn't part of any template yet.
+    await tx.fileAssignment.create({
+      data: {
+        fileId: file.id,
+        assignedToId: fileData.registeredById,
+        assignedDepartmentId: fileData.departmentId,
+        assignedById: fileData.registeredById,
+        workflowStepId: null,
+        status: "ASSIGNED",
+        isCurrent: true,
+        startedAt: new Date(),
+        instructions: "File opened at registry.",
+      },
+    });
+
     for (const attachment of attachments) {
       const createdAttachment = await tx.fileAttachment.create({
         data: {

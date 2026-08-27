@@ -11,6 +11,12 @@ import { withWeeklyTrend } from "../utils/trendCalculator.js";
 import * as authRepository from "../repositories/auth.repository.js";
 import * as permissionRepository from "../repositories/permission.repository.js";
 
+// Must stay in sync with the SystemModule enum in prisma/schema.prisma --
+// this list is what the create/update validator's isIn() check and the
+// list endpoint's module filter accept. Any enum value missing here is a
+// module whose permissions exist and are stored fine, but can neither be
+// filtered by module nor edited through this API (the update would fail
+// isIn() on its own unchanged module value).
 const MODULE_VALUES = [
   "AUTHENTICATION",
   "AUTHORIZATION",
@@ -22,11 +28,9 @@ const MODULE_VALUES = [
   "WORKFLOW",
   "REPORTS",
   "SETTINGS",
-  // Added alongside the DASHBOARD SystemModule enum value (see
-  // prisma/schema.prisma) for the DASHBOARD.READ_ADMIN_SUMMARY permission --
-  // without it here, that permission could never be filtered by module
-  // through this API even though it validly exists with module=DASHBOARD.
   "DASHBOARD",
+  "STORAGE",
+  "ARCHIVE",
 ];
 
 const SORTABLE_FIELDS = ["code", "name", "module", "createdAt", "updatedAt"];
