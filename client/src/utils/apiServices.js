@@ -150,8 +150,20 @@ export const getDepartments = (accessToken, params = {}) =>
 export const getDepartmentStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.DEPARTMENTS.STATS, authHeader(accessToken));
 
+export const getDepartmentById = (accessToken, id) =>
+  apiClient.get(API_ENDPOINTS.DEPARTMENTS.DETAIL(id), authHeader(accessToken));
+
 export const createDepartment = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.DEPARTMENTS.CREATE, payload, authHeader(accessToken));
+
+export const updateDepartment = (accessToken, id, payload) =>
+  apiClient.put(API_ENDPOINTS.DEPARTMENTS.UPDATE(id), payload, authHeader(accessToken));
+
+export const deactivateDepartment = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.DEPARTMENTS.DEACTIVATE(id), {}, authHeader(accessToken));
+
+export const reactivateDepartment = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.DEPARTMENTS.REACTIVATE(id), {}, authHeader(accessToken));
 
 export const getUnits = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.UNITS.LIST, { ...authHeader(accessToken), params });
@@ -159,8 +171,20 @@ export const getUnits = (accessToken, params = {}) =>
 export const getUnitStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.UNITS.STATS, authHeader(accessToken));
 
+export const getUnitById = (accessToken, id) =>
+  apiClient.get(API_ENDPOINTS.UNITS.DETAIL(id), authHeader(accessToken));
+
 export const createUnit = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.UNITS.CREATE, payload, authHeader(accessToken));
+
+export const updateUnit = (accessToken, id, payload) =>
+  apiClient.put(API_ENDPOINTS.UNITS.UPDATE(id), payload, authHeader(accessToken));
+
+export const deactivateUnit = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.UNITS.DEACTIVATE(id), {}, authHeader(accessToken));
+
+export const reactivateUnit = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.UNITS.REACTIVATE(id), {}, authHeader(accessToken));
 
 export const getPositions = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.POSITIONS.LIST, { ...authHeader(accessToken), params });
@@ -177,8 +201,20 @@ export const getRoles = (accessToken, params = {}) =>
 export const getRoleStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.ROLES.STATS, authHeader(accessToken));
 
+export const getRoleById = (accessToken, id) =>
+  apiClient.get(API_ENDPOINTS.ROLES.DETAIL(id), authHeader(accessToken));
+
 export const createRole = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.ROLES.CREATE, payload, authHeader(accessToken));
+
+export const updateRole = (accessToken, id, payload) =>
+  apiClient.put(API_ENDPOINTS.ROLES.UPDATE(id), payload, authHeader(accessToken));
+
+export const deactivateRole = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.ROLES.DEACTIVATE(id), {}, authHeader(accessToken));
+
+export const reactivateRole = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.ROLES.REACTIVATE(id), {}, authHeader(accessToken));
 
 // -- Permissions ---------------------------------------------------------
 
@@ -188,8 +224,20 @@ export const getPermissions = (accessToken, params = {}) =>
 export const getPermissionStats = (accessToken) =>
   apiClient.get(API_ENDPOINTS.PERMISSIONS.STATS, authHeader(accessToken));
 
+export const getPermissionById = (accessToken, id) =>
+  apiClient.get(API_ENDPOINTS.PERMISSIONS.DETAIL(id), authHeader(accessToken));
+
 export const createPermission = (accessToken, payload) =>
   apiClient.post(API_ENDPOINTS.PERMISSIONS.CREATE, payload, authHeader(accessToken));
+
+export const updatePermission = (accessToken, id, payload) =>
+  apiClient.put(API_ENDPOINTS.PERMISSIONS.UPDATE(id), payload, authHeader(accessToken));
+
+export const deactivatePermission = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.PERMISSIONS.DEACTIVATE(id), {}, authHeader(accessToken));
+
+export const reactivatePermission = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.PERMISSIONS.REACTIVATE(id), {}, authHeader(accessToken));
 
 // -- Role Permissions ------------------------------------------------------
 

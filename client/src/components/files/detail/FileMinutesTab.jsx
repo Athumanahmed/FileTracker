@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FileSignature, Reply, Trash2, Paperclip, Send, Plus, X, Loader2 } from "lucide-react";
+import { FileSignature, Reply, Trash2, Paperclip, Send, Plus, X, Loader2, Lock } from "lucide-react";
 import BaseInput from "../../shared/BaseInput";
 import EmptyState from "../../shared/EmptyState";
 import { formatDateTime, formatFileSize } from "../../../utils/formatters";
+import { ROLES } from "../../../utils/roles";
 import useAuthStore from "../../../store/authStore";
 import { useFileMinutes } from "../../../hooks/useFileMinutes";
+import { useFileWorkflowStatus } from "../../../hooks/useFileWorkflowStatus";
 import { useCreateMinute } from "../../../hooks/useCreateMinute";
 import { useReplyToMinute } from "../../../hooks/useReplyToMinute";
 import { useDeleteMinute } from "../../../hooks/useDeleteMinute";
@@ -162,11 +164,14 @@ const ReplyForm = ({ minuteId, fileId, onDone }) => {
   );
 };
 
-const MinuteCard = ({ minute, replies, fileId, isReply = false }) => {
+const MinuteCard = ({ minute, replies, fileId, canReply = false, isReply = false }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { mutate: deleteMinute } = useDeleteMinute();
   const user = useAuthStore((state) => state.user);
-  const canDelete = user?.id === minute.writtenBy?.id;
+  // Server allows the author OR a SYSTEM_ADMIN to retract a minute
+  // (see fileMinute.service.js#deleteMinute) -- mirror both here.
+  const isAdmin = Boolean(user?.roles?.some((r) => r.code === ROLES.SYSTEM_ADMIN));
+  const canDelete = user?.id === minute.writtenBy?.id || isAdmin;
 
   const handleDelete = () => {
     if (!window.confirm("Delete this minute? This can't be undone.")) return;
@@ -215,18 +220,19 @@ const MinuteCard = ({ minute, replies, fileId, isReply = false }) => {
           </div>
         )}
 
-        {!isReply && (
+        {!isReply && (minute.repliesCount > 0 || canReply) && (
           <button
             type="button"
             onClick={() => setShowReplyForm((prev) => !prev)}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primaryBlue hover:underline"
+            disabled={!canReply}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primaryBlue hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-default"
           >
             <Reply size={13} />
-            Reply {minute.repliesCount > 0 && `(${minute.repliesCount})`}
+            {canReply ? "Reply" : "Replies"} {minute.repliesCount > 0 && `(${minute.repliesCount})`}
           </button>
         )}
 
-        {showReplyForm && <ReplyForm minuteId={minute.id} fileId={fileId} onDone={() => setShowReplyForm(false)} />}
+        {showReplyForm && canReply && <ReplyForm minuteId={minute.id} fileId={fileId} onDone={() => setShowReplyForm(false)} />}
       </div>
 
       {replies?.length > 0 && (
@@ -240,9 +246,45 @@ const MinuteCard = ({ minute, replies, fileId, isReply = false }) => {
   );
 };
 
+/**
+ * Minutes are gated on file custody, exactly like workflow actions: the
+ * server's fileMinute.service.js#createMinute calls assertIsCurrentOwner,
+ * so only the file's current holder (or a SYSTEM_ADMIN) can record a
+ * minute or reply. This tab mirrors that -- the composer only appears for
+ * someone who can actually submit it; everyone else gets the history plus
+ * a note explaining who holds the file. `readOnly` (an archived file)
+ * still hides everything regardless of custody.
+ */
 const FileMinutesTab = ({ fileId, readOnly = false }) => {
   const [showAddForm, setShowAddForm] = useState(false);
+  const user = useAuthStore((state) => state.user);
   const { data: minutes, isLoading, isError, refetch } = useFileMinutes(fileId);
+  // Custody drives who can minute. This can fail for a role without
+  // WORKFLOW.READ (e.g. Archive Officer) -- treated the same as "not the
+  // holder", which is the right outcome since such a role can't minute anyway.
+  const { data: workflowStatus, isSuccess: workflowStatusLoaded } = useFileWorkflowStatus(fileId);
+
+  const instance = workflowStatus?.instance;
+  const currentAssignment = workflowStatus?.currentAssignment;
+  const holder = currentAssignment?.assignedTo;
+  const isAdmin = Boolean(user?.roles?.some((r) => r.code === ROLES.SYSTEM_ADMIN));
+  const isCurrentHolder = Boolean(holder?.id && holder.id === user?.id);
+  const canWrite = !readOnly && (isAdmin || isCurrentHolder);
+
+  // What to tell someone who can't currently write -- depends on where the
+  // file actually is in its lifecycle. Suppressed until custody is known,
+  // so a slow/failed status fetch never shows a misleading message.
+  const custodyHint = (() => {
+    if (readOnly || canWrite || !workflowStatusLoaded) return null;
+    if (holder) {
+      return `This file is currently held by ${holder.fullName}. Only the current holder can record a minute.`;
+    }
+    if (instance) {
+      const queue = currentAssignment?.assignedDepartment?.name;
+      return `This file is waiting to be claimed${queue ? ` in the ${queue} queue` : ""}. Whoever claims it from the Workflow tab can then record minutes.`;
+    }
+    return "This file has no current holder, so no minute can be recorded on it right now.";
+  })();
 
   // The flat list mixes top-level minutes and replies (see
   // server/repositories/fileMinute.repository.js#findByFileId) -- rebuild
@@ -264,7 +306,7 @@ const FileMinutesTab = ({ fileId, readOnly = false }) => {
         <h3 className="text-sm font-semibold text-gray-900">
           {topLevel.length} Minute{topLevel.length === 1 ? "" : "s"}
         </h3>
-        {!readOnly && !showAddForm && (
+        {canWrite && !showAddForm && (
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
@@ -276,7 +318,14 @@ const FileMinutesTab = ({ fileId, readOnly = false }) => {
         )}
       </div>
 
-      {showAddForm && <AddMinuteForm fileId={fileId} onDone={() => setShowAddForm(false)} />}
+      {custodyHint && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+          <Lock className="mt-0.5 shrink-0 text-amber-600" size={16} />
+          <p className="text-xs leading-relaxed text-amber-800">{custodyHint}</p>
+        </div>
+      )}
+
+      {canWrite && showAddForm && <AddMinuteForm fileId={fileId} onDone={() => setShowAddForm(false)} />}
 
       {isLoading ? (
         <div className="space-y-3 animate-pulse">
@@ -294,13 +343,23 @@ const FileMinutesTab = ({ fileId, readOnly = false }) => {
       ) : topLevel.length ? (
         <div className="space-y-3">
           {topLevel.map((minute) => (
-            <MinuteCard key={minute.id} minute={minute} replies={repliesByParent.get(minute.id)} fileId={fileId} />
+            <MinuteCard
+              key={minute.id}
+              minute={minute}
+              replies={repliesByParent.get(minute.id)}
+              fileId={fileId}
+              canReply={canWrite}
+            />
           ))}
         </div>
       ) : (
         <EmptyState
           title="No minutes yet"
-          message={readOnly ? "No instructions or decisions have been recorded on this file." : "Record an instruction, recommendation or decision."}
+          message={
+            canWrite
+              ? "Record an instruction, recommendation or decision."
+              : "No instructions or decisions have been recorded on this file."
+          }
           icon={FileSignature}
         />
       )}

@@ -5,9 +5,9 @@ import StatCard from "../../components/shared/StatCard";
 import DataTable from "../../components/shared/DataTable";
 import DataPagination from "../../components/shared/DataPagination";
 import UnitsFilterBar from "../../components/units/UnitsFilterBar";
-import { unitTableColumns } from "../../components/units/unitTableColumns";
 import { useAdminUnitsList } from "../../hooks/useAdminUnitsList";
 import { useUnitStats } from "../../hooks/useUnitStats";
+import { useUnitRowActions } from "../../hooks/useUnitRowActions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -51,6 +51,7 @@ const AllUnits = () => {
 
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminUnitsList(queryParams);
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useUnitStats();
+  const { columns, modals } = useUnitRowActions();
 
   const units = data?.data ?? [];
   const meta = data?.meta;
@@ -127,7 +128,7 @@ const AllUnits = () => {
 
       <DataTable
         data={units}
-        columns={unitTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -156,6 +157,8 @@ const AllUnits = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };

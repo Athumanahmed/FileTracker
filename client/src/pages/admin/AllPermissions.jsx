@@ -5,9 +5,9 @@ import StatCard from "../../components/shared/StatCard";
 import DataTable from "../../components/shared/DataTable";
 import DataPagination from "../../components/shared/DataPagination";
 import PermissionsFilterBar from "../../components/permissions/PermissionsFilterBar";
-import { permissionTableColumns } from "../../components/permissions/permissionTableColumns";
 import { useAdminPermissionsList } from "../../hooks/useAdminPermissionsList";
 import { usePermissionStats } from "../../hooks/usePermissionStats";
+import { usePermissionRowActions } from "../../hooks/usePermissionRowActions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -52,6 +52,7 @@ const AllPermissions = () => {
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminPermissionsList(queryParams);
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } =
     usePermissionStats();
+  const { columns, modals } = usePermissionRowActions();
 
   const permissions = data?.data ?? [];
   const meta = data?.meta;
@@ -128,7 +129,7 @@ const AllPermissions = () => {
 
       <DataTable
         data={permissions}
-        columns={permissionTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -157,6 +158,8 @@ const AllPermissions = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };

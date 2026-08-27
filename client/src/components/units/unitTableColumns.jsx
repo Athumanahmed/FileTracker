@@ -1,5 +1,4 @@
 import { Eye, Pencil, Boxes, IdCard, Users, CheckCircle2, XCircle } from "lucide-react";
-import toast from "react-hot-toast";
 import { formatDateTime } from "../../utils/formatters";
 import RowActionsMenu from "../shared/RowActionsMenu";
 
@@ -8,8 +7,18 @@ import RowActionsMenu from "../shared/RowActionsMenu";
  * `sortBy` values server/validators/unit.validation.js accepts --
  * AllUnits.jsx forwards the active sort column's id straight through as
  * the API's sortBy param.
+ *
+ * A factory (not a static array) -- the actions column's handlers are owned
+ * by useUnitRowActions. `canEdit` gates Edit on UNITS.UPDATE;
+ * `canManageStatus` gates Deactivate/Reactivate on UNITS.DELETE / UNITS.UPDATE.
  */
-export const unitTableColumns = [
+export const createUnitTableColumns = ({
+  onView,
+  onEdit,
+  onToggleActive,
+  canEdit = false,
+  canManageStatus = false,
+}) => [
   {
     id: "name",
     accessorKey: "name",
@@ -93,27 +102,26 @@ export const unitTableColumns = [
     enableHiding: false,
     cell: ({ row }) => {
       const unit = row.original;
-
       return (
         <div className="flex justify-end">
           <RowActionsMenu
             label={`Actions for ${unit.name}`}
             actions={[
-              { label: "View Details", icon: Eye, onClick: () => toast("Unit detail view is coming soon.") },
-              { label: "Edit Unit", icon: Pencil, onClick: () => toast("Editing units is coming soon.") },
-              { type: "divider" },
-              unit.isActive
-                ? {
-                    label: "Deactivate",
-                    icon: XCircle,
-                    variant: "danger",
-                    onClick: () => toast("Deactivating units is coming soon."),
-                  }
-                : {
-                    label: "Activate",
-                    icon: CheckCircle2,
-                    onClick: () => toast("Activating units is coming soon."),
-                  },
+              { label: "View Details", icon: Eye, onClick: () => onView(unit) },
+              ...(canEdit ? [{ label: "Edit Unit", icon: Pencil, onClick: () => onEdit(unit) }] : []),
+              ...(canManageStatus
+                ? [
+                    { type: "divider" },
+                    unit.isActive
+                      ? {
+                          label: "Deactivate",
+                          icon: XCircle,
+                          variant: "danger",
+                          onClick: () => onToggleActive(unit),
+                        }
+                      : { label: "Activate", icon: CheckCircle2, onClick: () => onToggleActive(unit) },
+                  ]
+                : []),
             ]}
           />
         </div>

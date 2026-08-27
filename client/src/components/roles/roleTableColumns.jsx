@@ -1,13 +1,4 @@
-import {
-  Eye,
-  Pencil,
-  ShieldCheck,
-  Users,
-  KeyRound,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import { Eye, Pencil, ShieldCheck, Users, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { formatDateTime } from "../../utils/formatters";
 import RowActionsMenu from "../shared/RowActionsMenu";
 
@@ -16,8 +7,20 @@ import RowActionsMenu from "../shared/RowActionsMenu";
  * `sortBy` values server/validators/role.validation.js accepts --
  * AllRoles.jsx forwards the active sort column's id straight through as
  * the API's sortBy param.
+ *
+ * A factory (not a static array) -- the actions column's handlers are owned
+ * by useRoleRowActions. `canEdit` gates Edit on ROLES.UPDATE;
+ * `canManageStatus` gates Deactivate/Reactivate on ROLES.DELETE / ROLES.UPDATE.
+ * System roles never expose a status toggle -- role.service.js blocks
+ * deactivating them entirely.
  */
-export const roleTableColumns = [
+export const createRoleTableColumns = ({
+  onView,
+  onEdit,
+  onToggleActive,
+  canEdit = false,
+  canManageStatus = false,
+}) => [
   {
     id: "name",
     accessorKey: "name",
@@ -37,7 +40,6 @@ export const roleTableColumns = [
       );
     },
   },
-
   {
     id: "isSystem",
     accessorKey: "isSystem",
@@ -100,9 +102,7 @@ export const roleTableColumns = [
     id: "createdAt",
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ getValue }) => (
-      <span className="text-gray-600">{formatDateTime(getValue())}</span>
-    ),
+    cell: ({ getValue }) => <span className="text-gray-600">{formatDateTime(getValue())}</span>,
   },
   {
     id: "actions",
@@ -111,44 +111,29 @@ export const roleTableColumns = [
     enableHiding: false,
     cell: ({ row }) => {
       const role = row.original;
-
       return (
         <div className="flex justify-end">
           <RowActionsMenu
             label={`Actions for ${role.name}`}
             actions={[
-              {
-                label: "View Details",
-                icon: Eye,
-                onClick: () => toast("Role detail view is coming soon."),
-              },
-              {
-                label: "Edit Role",
-                icon: Pencil,
-                onClick: () => toast("Editing roles is coming soon."),
-              },
+              { label: "View Details", icon: Eye, onClick: () => onView(role) },
+              ...(canEdit ? [{ label: "Edit Role", icon: Pencil, onClick: () => onEdit(role) }] : []),
               // System roles can never be deactivated (see role.service.js's
               // deactivateRole) -- omitting the action entirely is clearer
               // than showing one that will always 409.
-              ...(role.isSystem
-                ? []
-                : [
+              ...(canManageStatus && !role.isSystem
+                ? [
                     { type: "divider" },
                     role.isActive
                       ? {
                           label: "Deactivate",
                           icon: XCircle,
                           variant: "danger",
-                          onClick: () =>
-                            toast("Deactivating roles is coming soon."),
+                          onClick: () => onToggleActive(role),
                         }
-                      : {
-                          label: "Activate",
-                          icon: CheckCircle2,
-                          onClick: () =>
-                            toast("Activating roles is coming soon."),
-                        },
-                  ]),
+                      : { label: "Activate", icon: CheckCircle2, onClick: () => onToggleActive(role) },
+                  ]
+                : []),
             ]}
           />
         </div>

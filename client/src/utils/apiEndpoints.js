@@ -53,12 +53,20 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/departments",
     CREATE: "/api/v1/departments",
     STATS: "/api/v1/departments/stats",
+    DETAIL: (id) => `/api/v1/departments/${id}`,
+    UPDATE: (id) => `/api/v1/departments/${id}`,
+    DEACTIVATE: (id) => `/api/v1/departments/${id}/deactivate`,
+    REACTIVATE: (id) => `/api/v1/departments/${id}/reactivate`,
   },
 
   UNITS: {
     LIST: "/api/v1/units",
     CREATE: "/api/v1/units",
     STATS: "/api/v1/units/stats",
+    DETAIL: (id) => `/api/v1/units/${id}`,
+    UPDATE: (id) => `/api/v1/units/${id}`,
+    DEACTIVATE: (id) => `/api/v1/units/${id}/deactivate`,
+    REACTIVATE: (id) => `/api/v1/units/${id}/reactivate`,
   },
 
   POSITIONS: {
@@ -71,12 +79,20 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/roles",
     CREATE: "/api/v1/roles",
     STATS: "/api/v1/roles/stats",
+    DETAIL: (id) => `/api/v1/roles/${id}`,
+    UPDATE: (id) => `/api/v1/roles/${id}`,
+    DEACTIVATE: (id) => `/api/v1/roles/${id}/deactivate`,
+    REACTIVATE: (id) => `/api/v1/roles/${id}/reactivate`,
   },
 
   PERMISSIONS: {
     LIST: "/api/v1/permissions",
     CREATE: "/api/v1/permissions",
     STATS: "/api/v1/permissions/stats",
+    DETAIL: (id) => `/api/v1/permissions/${id}`,
+    UPDATE: (id) => `/api/v1/permissions/${id}`,
+    DEACTIVATE: (id) => `/api/v1/permissions/${id}/deactivate`,
+    REACTIVATE: (id) => `/api/v1/permissions/${id}/reactivate`,
   },
 
   ROLE_PERMISSIONS: {

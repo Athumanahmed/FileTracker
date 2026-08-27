@@ -62,7 +62,7 @@ const InfoRow = ({ icon: Icon, label, value, valueClassName = "text-gray-900" })
   </div>
 );
 
-const StartWorkflowPanel = ({ fileId }) => {
+const StartWorkflowPanel = ({ fileId, holder, isHeldByYou }) => {
   const [templateId, setTemplateId] = useState("");
   const [remarks, setRemarks] = useState("");
   const { data: templatesData, isLoading: templatesLoading } = useWorkflowTemplatesList();
@@ -99,6 +99,18 @@ const StartWorkflowPanel = ({ fileId }) => {
             This file hasn't entered a workflow yet. Pick a template to route it into review -- it's queued to the
             file's own department; no specific person needs to be named.
           </p>
+          {holder && (
+            <p className="text-xs text-gray-500 mt-2">
+              <span className="inline-flex items-center gap-1.5">
+                <User size={12} className="text-gray-400" />
+                Currently with{" "}
+                <span className="font-medium text-gray-700">
+                  {isHeldByYou ? "you" : holder.fullName}
+                </span>
+                {isHeldByYou && " -- you can record an opening minute from the Minutes tab before routing."}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -299,7 +311,11 @@ const FileWorkflowTab = ({ fileId }) => {
   return (
     <div className="space-y-4">
       {!instance ? (
-        <StartWorkflowPanel fileId={fileId} />
+        <StartWorkflowPanel
+          fileId={fileId}
+          holder={currentAssignment?.assignedTo}
+          isHeldByYou={isCurrentHolder}
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

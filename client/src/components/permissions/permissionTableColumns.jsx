@@ -1,12 +1,4 @@
-import {
-  Eye,
-  Pencil,
-  KeyRound,
-  Link2,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import { Eye, Pencil, KeyRound, Link2, CheckCircle2, XCircle } from "lucide-react";
 import { formatDateTime } from "../../utils/formatters";
 import { MODULE_LABELS, MODULE_BADGE_CLASSES } from "../../utils/permissionModules";
 import RowActionsMenu from "../shared/RowActionsMenu";
@@ -16,8 +8,19 @@ import RowActionsMenu from "../shared/RowActionsMenu";
  * exactly match the `sortBy` values server/validators/permission.validation.js
  * accepts -- AllPermissions.jsx forwards the active sort column's id
  * straight through as the API's sortBy param.
+ *
+ * A factory (not a static array) -- the actions column's handlers are owned
+ * by usePermissionRowActions. `canEdit` gates Edit on PERMISSIONS.UPDATE;
+ * `canManageStatus` gates Deactivate/Reactivate on PERMISSIONS.DELETE /
+ * PERMISSIONS.UPDATE.
  */
-export const permissionTableColumns = [
+export const createPermissionTableColumns = ({
+  onView,
+  onEdit,
+  onToggleActive,
+  canEdit = false,
+  canManageStatus = false,
+}) => [
   {
     id: "name",
     accessorKey: "name",
@@ -30,9 +33,7 @@ export const permissionTableColumns = [
             <KeyRound size={16} />
           </span>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">
-              {permission.name}
-            </p>
+            <p className="font-medium text-gray-900 truncate">{permission.name}</p>
             <p className="text-xs text-gray-500 truncate">{permission.code}</p>
           </div>
         </div>
@@ -55,7 +56,6 @@ export const permissionTableColumns = [
       );
     },
   },
-
   {
     id: "rolesCount",
     accessorKey: "rolesCount",
@@ -90,9 +90,7 @@ export const permissionTableColumns = [
     id: "createdAt",
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ getValue }) => (
-      <span className="text-gray-600">{formatDateTime(getValue())}</span>
-    ),
+    cell: ({ getValue }) => <span className="text-gray-600">{formatDateTime(getValue())}</span>,
   },
   {
     id: "actions",
@@ -101,37 +99,32 @@ export const permissionTableColumns = [
     enableHiding: false,
     cell: ({ row }) => {
       const permission = row.original;
-
       return (
         <div className="flex justify-end">
           <RowActionsMenu
             label={`Actions for ${permission.name}`}
             actions={[
-              {
-                label: "View Details",
-                icon: Eye,
-                onClick: () => toast("Permission detail view is coming soon."),
-              },
-              {
-                label: "Edit Permission",
-                icon: Pencil,
-                onClick: () => toast("Editing permissions is coming soon."),
-              },
-              { type: "divider" },
-              permission.isActive
-                ? {
-                    label: "Deactivate",
-                    icon: XCircle,
-                    variant: "danger",
-                    onClick: () =>
-                      toast("Deactivating permissions is coming soon."),
-                  }
-                : {
-                    label: "Activate",
-                    icon: CheckCircle2,
-                    onClick: () =>
-                      toast("Activating permissions is coming soon."),
-                  },
+              { label: "View Details", icon: Eye, onClick: () => onView(permission) },
+              ...(canEdit
+                ? [{ label: "Edit Permission", icon: Pencil, onClick: () => onEdit(permission) }]
+                : []),
+              ...(canManageStatus
+                ? [
+                    { type: "divider" },
+                    permission.isActive
+                      ? {
+                          label: "Deactivate",
+                          icon: XCircle,
+                          variant: "danger",
+                          onClick: () => onToggleActive(permission),
+                        }
+                      : {
+                          label: "Activate",
+                          icon: CheckCircle2,
+                          onClick: () => onToggleActive(permission),
+                        },
+                  ]
+                : []),
             ]}
           />
         </div>

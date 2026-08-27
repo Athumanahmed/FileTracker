@@ -5,9 +5,9 @@ import StatCard from "../../components/shared/StatCard";
 import DataTable from "../../components/shared/DataTable";
 import DataPagination from "../../components/shared/DataPagination";
 import DepartmentsFilterBar from "../../components/departments/DepartmentsFilterBar";
-import { departmentTableColumns } from "../../components/departments/departmentTableColumns";
 import { useAdminDepartmentsList } from "../../hooks/useAdminDepartmentsList";
 import { useDepartmentStats } from "../../hooks/useDepartmentStats";
+import { useDepartmentRowActions } from "../../hooks/useDepartmentRowActions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -49,6 +49,7 @@ const AllDepartments = () => {
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminDepartmentsList(queryParams);
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } =
     useDepartmentStats();
+  const { columns, modals } = useDepartmentRowActions();
 
   const departments = data?.data ?? [];
   const meta = data?.meta;
@@ -123,7 +124,7 @@ const AllDepartments = () => {
 
       <DataTable
         data={departments}
-        columns={departmentTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -152,6 +153,8 @@ const AllDepartments = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };

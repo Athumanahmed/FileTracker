@@ -5,9 +5,9 @@ import StatCard from "../../components/shared/StatCard";
 import DataTable from "../../components/shared/DataTable";
 import DataPagination from "../../components/shared/DataPagination";
 import RolesFilterBar from "../../components/roles/RolesFilterBar";
-import { roleTableColumns } from "../../components/roles/roleTableColumns";
 import { useAdminRolesList } from "../../hooks/useAdminRolesList";
 import { useRoleStats } from "../../hooks/useRoleStats";
+import { useRoleRowActions } from "../../hooks/useRoleRowActions";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -51,6 +51,7 @@ const AllRoles = () => {
 
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminRolesList(queryParams);
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useRoleStats();
+  const { columns, modals } = useRoleRowActions();
 
   const roles = data?.data ?? [];
   const meta = data?.meta;
@@ -127,7 +128,7 @@ const AllRoles = () => {
 
       <DataTable
         data={roles}
-        columns={roleTableColumns}
+        columns={columns}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -156,6 +157,8 @@ const AllRoles = () => {
           />
         </div>
       )}
+
+      {modals}
     </div>
   );
 };
