@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Hash, Building2, Tag, Shield, UserCircle2, Calendar, User, Phone, IdCard, Archive, ArchiveRestore } from "lucide-react";
+import toast from "react-hot-toast";
+import { Hash, Building2, Tag, Shield, UserCircle2, Calendar, User, Phone, IdCard, Archive, ArchiveRestore, MessageSquare, Loader2 } from "lucide-react";
 import { formatDateTime } from "../../../utils/formatters";
 import { getFileStatusMeta, getFilePriorityMeta } from "../../../utils/fileStatusMeta";
 import useAuthStore from "../../../store/authStore";
 import { PERMISSIONS } from "../../../utils/permissions";
+import { useSetCitizenSmsPreference } from "../../../hooks/useSetCitizenSmsPreference";
 import ArchiveFileModal from "../ArchiveFileModal";
 import RestoreFileModal from "../RestoreFileModal";
 
@@ -30,8 +32,23 @@ const CONFIDENTIALITY_LABELS = {
 const FileOverviewTab = ({ file, archiveStatus }) => {
   const user = useAuthStore((state) => state.user);
   const canManageArchive = user?.permissions?.includes(PERMISSIONS.ARCHIVE_MANAGE);
+  const canManageCitizenSms = user?.permissions?.includes(PERMISSIONS.FILES_REGISTER);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+
+  const { mutate: setSmsPreference, isPending: smsPending } = useSetCitizenSmsPreference(file.id);
+  const smsEnabled = file.citizen?.smsNotificationsEnabled;
+
+  const toggleCitizenSms = () => {
+    setSmsPreference(
+      { citizenId: file.citizen.id, enabled: !smsEnabled },
+      {
+        onSuccess: (data) =>
+          toast.success(`SMS updates ${data.smsNotificationsEnabled ? "enabled" : "disabled"} for this citizen.`),
+        onError: (error) => toast.error(error?.response?.data?.message || "Unable to update SMS preference."),
+      },
+    );
+  };
 
   const status = getFileStatusMeta(file.status);
   const priority = getFilePriorityMeta(file.priority);
@@ -123,6 +140,37 @@ const FileOverviewTab = ({ file, archiveStatus }) => {
               <InfoRow icon={User} label="Full Name" value={file.citizen.fullName} />
               <InfoRow icon={IdCard} label="Citizen Number" value={file.citizen.citizenNumber} />
               {file.citizen.phoneNumber && <InfoRow icon={Phone} label="Phone Number" value={file.citizen.phoneNumber} />}
+              <div className="flex items-center justify-between gap-4 py-2.5">
+                <span className="flex items-center gap-2 text-sm text-gray-500">
+                  <MessageSquare size={15} className="text-gray-400" />
+                  SMS status updates
+                </span>
+                {canManageCitizenSms && file.citizen.phoneNumber ? (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(smsEnabled)}
+                    disabled={smsPending}
+                    onClick={toggleCitizenSms}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+                      smsEnabled ? "bg-primaryBlue" : "bg-gray-300"
+                    }`}
+                  >
+                    {smsPending && (
+                      <Loader2 size={11} className="absolute left-1/2 -translate-x-1/2 animate-spin text-white" />
+                    )}
+                    <span
+                      className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition-transform ${
+                        smsEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                ) : (
+                  <span className="text-sm font-medium text-gray-900 text-right">
+                    {!file.citizen.phoneNumber ? "No phone on file" : smsEnabled ? "On" : "Off"}
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-400 py-6 text-center">No citizen linked to this file.</p>

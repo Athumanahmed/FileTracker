@@ -325,10 +325,37 @@ export const downloadAttachmentFile = (accessToken, attachmentId) =>
 export const previewAttachmentFile = (accessToken, attachmentId) =>
   apiClient.get(API_ENDPOINTS.ATTACHMENTS.PREVIEW(attachmentId), { ...authHeader(accessToken), responseType: "blob" });
 
-// -- Workflow Templates (lookup, for the Start Workflow picker) ----------------
+// -- Workflow Templates --------------------------------------------------------
+// getWorkflowTemplates doubles as the Start Workflow picker lookup and the
+// admin directory's paginated list -- same GET /workflow-templates endpoint,
+// just different query params.
 
 export const getWorkflowTemplates = (accessToken, params = {}) =>
   apiClient.get(API_ENDPOINTS.WORKFLOW_TEMPLATES.LIST, { ...authHeader(accessToken), params });
+
+export const getWorkflowTemplateById = (accessToken, id) =>
+  apiClient.get(API_ENDPOINTS.WORKFLOW_TEMPLATES.DETAIL(id), authHeader(accessToken));
+
+export const createWorkflowTemplate = (accessToken, payload) =>
+  apiClient.post(API_ENDPOINTS.WORKFLOW_TEMPLATES.CREATE, payload, authHeader(accessToken));
+
+export const updateWorkflowTemplate = (accessToken, id, payload) =>
+  apiClient.put(API_ENDPOINTS.WORKFLOW_TEMPLATES.UPDATE(id), payload, authHeader(accessToken));
+
+export const deactivateWorkflowTemplate = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.WORKFLOW_TEMPLATES.DEACTIVATE(id), {}, authHeader(accessToken));
+
+export const reactivateWorkflowTemplate = (accessToken, id) =>
+  apiClient.patch(API_ENDPOINTS.WORKFLOW_TEMPLATES.REACTIVATE(id), {}, authHeader(accessToken));
+
+export const addWorkflowTemplateStep = (accessToken, id, payload) =>
+  apiClient.post(API_ENDPOINTS.WORKFLOW_TEMPLATES.STEPS(id), payload, authHeader(accessToken));
+
+export const updateWorkflowTemplateStep = (accessToken, id, stepId, payload) =>
+  apiClient.put(API_ENDPOINTS.WORKFLOW_TEMPLATES.STEP_UPDATE(id, stepId), payload, authHeader(accessToken));
+
+export const deactivateWorkflowTemplateStep = (accessToken, id, stepId) =>
+  apiClient.patch(API_ENDPOINTS.WORKFLOW_TEMPLATES.STEP_DEACTIVATE(id, stepId), {}, authHeader(accessToken));
 
 // -- Workflow Engine -------------------------------------------------------------
 
@@ -388,6 +415,16 @@ export const restoreFile = (accessToken, fileId, payload) =>
 /** Escalation/destruction-review queue -- every archived file already past its retention window. Not paginated -- meant to stay a short list. */
 export const getExpiredRetention = (accessToken) =>
   apiClient.get(API_ENDPOINTS.ARCHIVE.EXPIRED_RETENTION, authHeader(accessToken));
+
+/** Archive Dashboard aggregates -- ready/archived/restored counts, retention-runway buckets, archived-per-month, upcoming expiries. */
+export const getArchiveStats = (accessToken) =>
+  apiClient.get(API_ENDPOINTS.ARCHIVE.STATS, authHeader(accessToken));
+
+// -- Citizens ------------------------------------------------------------------
+
+/** Registry toggle for the citizen-facing SMS milestone alerts. */
+export const setCitizenSmsPreference = (accessToken, citizenId, smsNotificationsEnabled) =>
+  apiClient.patch(API_ENDPOINTS.CITIZENS.SMS_PREFERENCE(citizenId), { smsNotificationsEnabled }, authHeader(accessToken));
 
 // -- Notifications ---------------------------------------------------------------
 // Every endpoint here is self-scoped (identity from the token, no :userId) --

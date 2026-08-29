@@ -1,8 +1,8 @@
 import { Controller } from "react-hook-form";
-import { User, IdCard, Phone, Mail, MapPin, Building } from "lucide-react";
+import { User, IdCard, Phone, Mail, MapPin, Building, MessageSquare } from "lucide-react";
 import BaseInput from "../../shared/BaseInput";
 
-const CitizenStep = ({ control, errors, linkCitizen, onToggle }) => (
+const CitizenStep = ({ control, errors, linkCitizen, onToggle, smsEnabled, onSmsToggle, hasPhone }) => (
   <div className="space-y-5">
     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
       <div>
@@ -156,6 +156,36 @@ const CitizenStep = ({ control, errors, linkCitizen, onToggle }) => (
             />
           )}
         />
+
+        <div className="flex items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+          <div className="flex gap-3">
+            <MessageSquare size={18} className="mt-0.5 shrink-0 text-primaryBlue" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Send SMS status updates</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                The citizen gets a text with their tracking number now, then on each key milestone
+                (approved, completed, closed, or when more information is needed).
+                {!hasPhone && " Add a phone number above to enable this."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={smsEnabled && hasPhone}
+            disabled={!hasPhone}
+            onClick={() => onSmsToggle(!smsEnabled)}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
+              smsEnabled && hasPhone ? "bg-primaryBlue" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition-transform ${
+                smsEnabled && hasPhone ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
       </div>
     ) : (
       <p className="text-sm text-gray-400 text-center py-8">This is an internal file with no citizen attached.</p>

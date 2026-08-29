@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { LayoutGrid, Paperclip, Workflow, FileSignature, History, QrCode } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
@@ -15,15 +15,19 @@ import FileTimelineTab from "../components/files/detail/FileTimelineTab";
 import FileQrCode from "../components/files/FileQrCode";
 import useAuthStore from "../store/authStore";
 import { getDashboardHomePath } from "../utils/dashboardHome";
+import { PERMISSIONS } from "../utils/permissions";
 
-const TABS = [
+// Each tab beyond Overview is backed by its own permission-gated API. A
+// role that holds FILES.READ but not, say, WORKFLOW.READ (e.g. the Archive
+// Officer) simply doesn't see that tab, rather than opening it to a wall
+// of 403s.
+const ALL_TABS = [
   { id: "overview", name: "Overview", icon: LayoutGrid },
-  { id: "attachments", name: "Attachments", icon: Paperclip },
-  { id: "workflow", name: "Workflow", icon: Workflow },
-  { id: "minutes", name: "Minutes", icon: FileSignature },
-  { id: "timeline", name: "Timeline", icon: History },
+  { id: "attachments", name: "Attachments", icon: Paperclip, permission: PERMISSIONS.ATTACHMENTS_READ },
+  { id: "workflow", name: "Workflow", icon: Workflow, permission: PERMISSIONS.WORKFLOW_READ },
+  { id: "minutes", name: "Minutes", icon: FileSignature, permission: PERMISSIONS.MINUTES_READ },
+  { id: "timeline", name: "Timeline", icon: History, permission: PERMISSIONS.TIMELINE_READ },
 ];
-const TAB_IDS = TABS.map((t) => t.id);
 
 /** Shared across every role -- the tabs themselves (components/files/detail/*) were already role-agnostic; only the route prefix (for breadcrumbs/back link) varies. */
 const FileDetails = () => {
@@ -31,13 +35,19 @@ const FileDetails = () => {
   const user = useAuthStore((state) => state.user);
   const basePath = getDashboardHomePath(user);
 
+  const tabs = useMemo(
+    () => ALL_TABS.filter((t) => !t.permission || user?.permissions?.includes(t.permission)),
+    [user?.permissions],
+  );
+  const tabIds = tabs.map((t) => t.id);
+
   // Lets callers deep-link straight to a tab -- e.g. the Workflow page's
   // "Start Workflow" / "View Assignment" actions navigate here with
   // `state: { initialTab: "workflow" }` instead of always landing on
   // Overview and making the user click through again.
   const location = useLocation();
   const requestedTab = location.state?.initialTab;
-  const [activeTab, setActiveTab] = useState(TAB_IDS.includes(requestedTab) ? requestedTab : "overview");
+  const [activeTab, setActiveTab] = useState(tabIds.includes(requestedTab) ? requestedTab : "overview");
   const [showQrModal, setShowQrModal] = useState(false);
 
   const { data: file, isLoading, isError, refetch } = useFileDetail(fileId);
@@ -70,6 +80,7 @@ const FileDetails = () => {
   const status = getFileStatusMeta(file.status);
   const isReadOnly = Boolean(archiveStatus);
   const filesPath = `${basePath}/files`;
+  const effectiveTab = tabIds.includes(activeTab) ? activeTab : "overview";
 
   return (
     <div className="p-2 xl:p-4">
@@ -86,15 +97,15 @@ const FileDetails = () => {
         secondaryActions={[{ label: "QR Code", icon: QrCode, onClick: () => setShowQrModal(true) }]}
         divider={false}
       >
-        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={TABS} />
+        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
       </PageHeader>
 
       <div className="mt-5">
-        {activeTab === "overview" && <FileOverviewTab file={file} archiveStatus={archiveStatus} />}
-        {activeTab === "attachments" && <FileAttachmentsTab fileId={fileId} readOnly={isReadOnly} />}
-        {activeTab === "workflow" && <FileWorkflowTab fileId={fileId} />}
-        {activeTab === "minutes" && <FileMinutesTab fileId={fileId} readOnly={isReadOnly} />}
-        {activeTab === "timeline" && <FileTimelineTab fileId={fileId} />}
+        {effectiveTab === "overview" && <FileOverviewTab file={file} archiveStatus={archiveStatus} />}
+        {effectiveTab === "attachments" && <FileAttachmentsTab fileId={fileId} readOnly={isReadOnly} />}
+        {effectiveTab === "workflow" && <FileWorkflowTab fileId={fileId} />}
+        {effectiveTab === "minutes" && <FileMinutesTab fileId={fileId} readOnly={isReadOnly} />}
+        {effectiveTab === "timeline" && <FileTimelineTab fileId={fileId} />}
       </div>
 
       <Modal isOpen={showQrModal} onClose={() => setShowQrModal(false)} title="File QR Label" description={file.fileNumber} size="sm">

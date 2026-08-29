@@ -128,6 +128,14 @@ export const API_ENDPOINTS = {
 
   WORKFLOW_TEMPLATES: {
     LIST: "/api/v1/workflow-templates",
+    CREATE: "/api/v1/workflow-templates",
+    DETAIL: (id) => `/api/v1/workflow-templates/${id}`,
+    UPDATE: (id) => `/api/v1/workflow-templates/${id}`,
+    DEACTIVATE: (id) => `/api/v1/workflow-templates/${id}/deactivate`,
+    REACTIVATE: (id) => `/api/v1/workflow-templates/${id}/reactivate`,
+    STEPS: (id) => `/api/v1/workflow-templates/${id}/steps`,
+    STEP_UPDATE: (id, stepId) => `/api/v1/workflow-templates/${id}/steps/${stepId}`,
+    STEP_DEACTIVATE: (id, stepId) => `/api/v1/workflow-templates/${id}/steps/${stepId}/deactivate`,
   },
 
   WORKFLOW: {
@@ -151,11 +159,16 @@ export const API_ENDPOINTS = {
     LIST_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/timeline`,
   },
 
+  CITIZENS: {
+    SMS_PREFERENCE: (id) => `/api/v1/citizens/${id}/sms-preference`,
+  },
+
   ARCHIVE: {
     STATUS_FOR_FILE: (fileId) => `/api/v1/files/${fileId}/archive`,
     ARCHIVE_FILE: (fileId) => `/api/v1/files/${fileId}/archive`,
     RESTORE_FILE: (fileId) => `/api/v1/files/${fileId}/archive/restore`,
     EXPIRED_RETENTION: "/api/v1/archive/expired-retention",
+    STATS: "/api/v1/archive/stats",
   },
 
   NOTIFICATIONS: {

@@ -31,6 +31,10 @@ import CreateRole from "../../pages/admin/CreateRole";
 import AllPermissions from "../../pages/admin/AllPermissions";
 import CreatePermission from "../../pages/admin/CreatePermission";
 import RolePermissions from "../../pages/admin/RolePermissions";
+import AllWorkflowTemplates from "../../pages/admin/AllWorkflowTemplates";
+import CreateWorkflowTemplate from "../../pages/admin/CreateWorkflowTemplate";
+import WorkflowTemplateDetails from "../../pages/admin/WorkflowTemplateDetails";
+import ArchiveDashboard from "../../pages/archive/ArchiveDashboard";
 import ScopedDashboard from "../../pages/ScopedDashboard";
 import ScopedUsers from "../../pages/ScopedUsers";
 import UserDetails from "../../pages/UserDetails";
@@ -350,7 +354,23 @@ const AppRoutes = (
           path="workflow-templates"
           element={
             <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_TEMPLATES_READ}>
-              <PlaceholderPage title="Workflow Templates" description="Workflow template and step configuration are coming soon." />
+              <AllWorkflowTemplates />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="workflow-templates/:templateId"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_TEMPLATES_READ}>
+              <WorkflowTemplateDetails />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="create-workflow-template"
+          element={
+            <RoleBasedRoute requiredPermission={PERMISSIONS.WORKFLOW_TEMPLATES_CREATE}>
+              <CreateWorkflowTemplate />
             </RoleBasedRoute>
           }
         />
@@ -462,10 +482,7 @@ const AppRoutes = (
 
       {/* Archive Officer -- /archive, /archive/files, /archive/archive. No Workflow/Reports: not granted to this role. */}
       <Route path="archive" element={actorShell(ROLES.ARCHIVE)}>
-        <Route
-          index
-          element={<PlaceholderPage title="Archive Dashboard" description="Your dashboard is being tailored for your role." />}
-        />
+        <Route index element={<ArchiveDashboard />} />
         {notificationsRoute}
         {filesRoute}
         {searchRoute}

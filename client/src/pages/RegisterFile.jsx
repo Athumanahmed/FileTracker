@@ -32,6 +32,7 @@ const registerFileSchema = z
     dueDate: z.string().optional().or(z.literal("")),
 
     linkCitizen: z.boolean(),
+    citizenSmsEnabled: z.boolean(),
     citizenFirstName: z.string().trim().optional().or(z.literal("")),
     citizenMiddleName: z.string().trim().optional().or(z.literal("")),
     citizenLastName: z.string().trim().optional().or(z.literal("")),
@@ -60,6 +61,7 @@ const defaultValues = {
   source: "WALK_IN",
   dueDate: "",
   linkCitizen: false,
+  citizenSmsEnabled: true,
   citizenFirstName: "",
   citizenMiddleName: "",
   citizenLastName: "",
@@ -100,6 +102,7 @@ const buildFormData = (values, files) => {
         email: values.citizenEmail?.trim() || undefined,
         physicalAddress: values.citizenPhysicalAddress?.trim() || undefined,
         organizationName: values.citizenOrganizationName?.trim() || undefined,
+        smsNotificationsEnabled: Boolean(values.citizenSmsEnabled),
       }),
     );
   }
@@ -230,6 +233,9 @@ const RegisterFile = () => {
               errors={errors}
               linkCitizen={linkCitizen}
               onToggle={(value) => setValue("linkCitizen", value)}
+              smsEnabled={values.citizenSmsEnabled}
+              onSmsToggle={(value) => setValue("citizenSmsEnabled", value)}
+              hasPhone={Boolean(values.citizenPhoneNumber?.trim())}
             />
           )}
           {stepIndex === 2 && <AttachmentsStep files={files} onFilesChange={setFiles} />}

@@ -19,6 +19,10 @@ const Files = () => {
   const user = useAuthStore((state) => state.user);
   const basePath = getDashboardHomePath(user);
   const canRegister = user?.permissions?.includes(PERMISSIONS.FILES_REGISTER);
+  // The KPI tiles are backed by a Reports endpoint -- a role with FILES.READ
+  // but no REPORTS.READ (e.g. Archive Officer) still gets the file list, just
+  // without the summary strip, instead of a 403 error card.
+  const canSeeKpis = user?.permissions?.includes(PERMISSIONS.REPORTS_READ);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -56,7 +60,12 @@ const Files = () => {
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useFiles(queryParams);
-  const { data: kpis, isLoading: kpisLoading, isError: kpisError, refetch: refetchKpis } = useReportDashboardKpis();
+  const {
+    data: kpis,
+    isLoading: kpisLoading,
+    isError: kpisError,
+    refetch: refetchKpis,
+  } = useReportDashboardKpis({}, { enabled: canSeeKpis });
   const columns = useMemo(() => buildFileTableColumns(`${basePath}/files`), [basePath]);
 
   const files = data?.data ?? [];
@@ -71,7 +80,7 @@ const Files = () => {
         primaryAction={canRegister ? { label: "Register File", icon: FilePlus2, to: `${basePath}/files/new` } : undefined}
       />
 
-      {kpisError ? (
+      {!canSeeKpis ? null : kpisError ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 p-4 mb-6 text-center">
           <p className="text-sm text-red-600">Unable to load file statistics.</p>
           <button

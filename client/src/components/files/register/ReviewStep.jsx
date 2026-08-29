@@ -39,6 +39,9 @@ const ReviewStep = ({ values, categoryLabel, departmentLabel, files }) => (
           {values.citizenPhoneNumber && <Row label="Phone Number" value={values.citizenPhoneNumber} />}
           {values.citizenEmail && <Row label="Email" value={values.citizenEmail} />}
           {values.citizenOrganizationName && <Row label="Organization" value={values.citizenOrganizationName} />}
+          {values.citizenPhoneNumber && (
+            <Row label="SMS status updates" value={values.citizenSmsEnabled ? "On" : "Off"} />
+          )}
         </div>
       ) : (
         <p className="text-sm text-gray-400 py-2">No citizen linked -- internal file.</p>
