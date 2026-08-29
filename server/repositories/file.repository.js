@@ -6,7 +6,7 @@ const DETAIL_INCLUDE = {
   category: { select: { id: true, name: true, code: true } },
   department: { select: { id: true, name: true, code: true } },
   citizen: {
-    select: { id: true, citizenNumber: true, fullName: true, phoneNumber: true, nationalId: true },
+    select: { id: true, citizenNumber: true, fullName: true, phoneNumber: true, nationalId: true, smsNotificationsEnabled: true },
   },
   registeredBy: { select: { id: true, fullName: true, username: true } },
   attachments: {
@@ -79,6 +79,45 @@ export const createFileWithAttachments = ({ fileData, attachments }) =>
   });
 
 export const findById = (id) => prisma.file.findFirst({ where: { id, deletedAt: null }, include: DETAIL_INCLUDE });
+
+/** Lean projection for the citizen-SMS subscriber -- just what deciding whether/what to text needs. */
+export const findForCitizenNotification = (id) =>
+  prisma.file.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      trackingNumber: true,
+      title: true,
+      status: true,
+      citizenId: true,
+      citizen: { select: { id: true, phoneNumber: true, isActive: true, smsNotificationsEnabled: true } },
+    },
+  });
+
+/**
+ * Public file-tracking portal -- matched by ANY of the three reference
+ * numbers printed on a citizen's paperwork (tracking / file / registry),
+ * since a citizen may quote whichever one they have. The phone check in the
+ * service is the real gate; this only narrows to one file.
+ */
+export const findByPublicReference = (reference) =>
+  prisma.file.findFirst({
+    where: {
+      deletedAt: null,
+      OR: [{ trackingNumber: reference }, { fileNumber: reference }, { registryNumber: reference }],
+    },
+    select: {
+      id: true,
+      trackingNumber: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      closedAt: true,
+      department: { select: { name: true } },
+      citizen: { select: { firstName: true, phoneNumber: true } },
+    },
+  });
 
 export const findMany = ({ where, orderBy, skip, take }) =>
   prisma.file.findMany({

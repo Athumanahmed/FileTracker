@@ -731,14 +731,20 @@ model Citizen {
 
   isActive Boolean @default(true)
 
+  // Registry-controlled opt-out for the citizen-facing SMS milestone alerts
+  // (see CitizenSmsMessage). Defaults on -- a citizen with a phone number on
+  // file is notified unless someone deliberately turns this off.
+  smsNotificationsEnabled Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   registeredById String?
   registeredBy   User?   @relation(fields: [registeredById], references: [id])
 
-  files           File[]
-  correspondences Correspondence[]
+  files              File[]
+  correspondences    Correspondence[]
+  citizenSmsMessages CitizenSmsMessage[]
 
   @@index([phoneNumber])
   @@index([nationalId])
@@ -813,8 +819,9 @@ model File {
   tags               FileTagMapping[]
   watchers           FileWatcher[]
   archiveRecord      ArchiveRecord?
-  outgoingReferences FileReference[]    @relation("FileReferences")
-  incomingReferences FileReference[]    @relation("ReferencedByFiles")
+  outgoingReferences FileReference[]     @relation("FileReferences")
+  incomingReferences FileReference[]     @relation("ReferencedByFiles")
+  citizenSmsMessages CitizenSmsMessage[]
 
   @@index([status])
   @@index([priority])
@@ -1503,6 +1510,48 @@ model NotificationQueue {
   updatedAt DateTime @updatedAt
 
   @@index([status, nextAttemptAt])
+}
+
+// Citizen-facing SMS milestone alerts. Deliberately separate from the
+// Notification/NotificationRecipient/NotificationQueue chain -- that chain
+// is user-centric (FK to User, an in-app inbox, per-user channel
+// preferences), none of which a Citizen has. This is a self-contained
+// enqueue-and-retry record with the same dispatch mechanics
+// (QueueStatus + attempts + exponential backoff via nextAttemptAt),
+// drained by the same cron (see notificationQueue.cron.js).
+model CitizenSmsMessage {
+  id String @id @default(cuid())
+
+  citizenId String
+  citizen   Citizen @relation(fields: [citizenId], references: [id])
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id])
+
+  // REGISTERED | INFO_REQUESTED | APPROVED | REJECTED | COMPLETED | CLOSED
+  eventKey String
+
+  // E.164 (2557...) snapshot taken at enqueue time -- the citizen's number
+  // could be edited afterwards; the message that was sent used this one.
+  phoneNumber String
+  message     String
+
+  status      QueueStatus @default(PENDING)
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3)
+
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  sentAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One SMS per milestone per file -- makes the enqueue idempotent even if
+  // a domain event is somehow published twice.
+  @@unique([fileId, eventKey])
+  @@index([status, nextAttemptAt])
+  @@index([citizenId])
 }
 
 // ---------------------------------------------------------------------

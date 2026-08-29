@@ -28,8 +28,11 @@ import notificationRoutes from "./routes/notification.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import archiveRoutes from "./routes/archive.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import citizenRoutes from "./routes/citizen.routes.js";
+import trackRoutes from "./routes/track.routes.js";
 import { registerTimelineSubscriber } from "./services/timelineEvent.subscriber.js";
 import { registerNotificationSubscriber } from "./services/notification.service.js";
+import { registerCitizenSmsSubscriber } from "./services/citizenSms.subscriber.js";
 import { registerNotificationQueueCron } from "./services/notificationQueue.cron.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
@@ -41,13 +44,21 @@ import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
 // keep in sync, just live aggregation at request time.
 registerTimelineSubscriber();
 registerNotificationSubscriber();
+registerCitizenSmsSubscriber();
 registerNotificationQueueCron();
 
 // variables
 const app = express();
 app.set("trust proxy", 1);
 const PORT = process.env.PORT;
-const allowedOrigins = ["http://localhost:3000"];
+
+// Internal staff client (3000) + public citizen portal (3001) by default;
+// override with a comma-separated CORS_ORIGINS on the VPS (e.g.
+// "https://efms.tabora.go.tz,https://track.tabora.go.tz").
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:3001")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(helmet());
 app.use(
@@ -97,6 +108,9 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/archive", archiveRoutes);
 app.use("/api/v1/reports", reportRoutes);
+app.use("/api/v1/citizens", citizenRoutes);
+// Public, unauthenticated -- the citizen file-tracking portal.
+app.use("/api/v1/track", trackRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

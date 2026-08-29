@@ -64,4 +64,11 @@ export const securityConfig = {
   // debounce in front of it, tight enough to cap a scripted scrape.
   searchRateLimitWindowMs: parseDurationToMs(process.env.SEARCH_RATE_LIMIT_WINDOW || "1m"),
   searchRateLimitMax: Number(process.env.SEARCH_RATE_LIMIT_MAX) || 30,
+
+  // Public citizen file-tracking lookup. Keyed by IP -- generous enough
+  // that a citizen mistyping their number or phone a handful of times is
+  // never locked out, tight enough that walking sequential reference
+  // numbers from one IP is throttled to a crawl.
+  trackFileRateLimitWindowMs: parseDurationToMs(process.env.TRACK_FILE_RATE_LIMIT_WINDOW || "10m"),
+  trackFileRateLimitMax: Number(process.env.TRACK_FILE_RATE_LIMIT_MAX) || 40,
 };

@@ -96,6 +96,24 @@ export const forgotPasswordLimiter = rateLimit({
   passOnStoreError: true,
 });
 
+/**
+ * Public, unauthenticated file-tracking lookup. Keyed by IP alone (not
+ * IP+number) so a citizen who mistypes their number or phone a few times
+ * isn't locked out, while a scripted sweep across sequential reference
+ * numbers from one IP is still throttled to a crawl. The service already
+ * returns an identical generic error for "not found" and "wrong phone".
+ */
+export const trackFileLimiter = rateLimit({
+  windowMs: securityConfig.trackFileRateLimitWindowMs,
+  max: securityConfig.trackFileRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  store: makeStore("track-file"),
+  passOnStoreError: true,
+});
+
 export const verifyResetOtpLimiter = rateLimit({
   windowMs: securityConfig.verifyOtpRateLimitWindowMs,
   max: securityConfig.verifyOtpRateLimitMax,

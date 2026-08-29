@@ -58,3 +58,27 @@ export const findExpiredRetention = () =>
     include: { ...DETAIL_INCLUDE, file: { select: { id: true, fileNumber: true, title: true } } },
     orderBy: { retentionExpiresAt: "asc" },
   });
+
+/**
+ * Flat archive-record shape for the Archive Dashboard's stats/charts --
+ * grouped in JS (municipal-scale volume, same rationale as
+ * report.repository.js#findAllForReporting).
+ */
+export const findAllForStats = () =>
+  prisma.archiveRecord.findMany({
+    select: {
+      status: true,
+      archivedAt: true,
+      retentionExpiresAt: true,
+      retentionYears: true,
+      file: { select: { id: true, fileNumber: true, title: true } },
+    },
+  });
+
+/** Files whose workflow is over but that haven't been archived yet, grouped by their terminal status. */
+export const countReadyToArchiveByStatus = () =>
+  prisma.file.groupBy({
+    by: ["status"],
+    where: { deletedAt: null, status: { in: ["COMPLETED", "REJECTED", "CLOSED"] } },
+    _count: { _all: true },
+  });

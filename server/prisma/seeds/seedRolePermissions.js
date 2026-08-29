@@ -130,11 +130,23 @@ const WORKFLOW_ASSIGNEE_PERMISSIONS = [
 /**
  * Archive/retention management (Phase 10) is a real specialization, not
  * the usual "whoever can act on a file" access reality -- only the
- * Archive Officer role manages it. FILES.READ + TIMELINE.READ are needed
- * just to find and review a file before archiving it; ARCHIVE.MANAGE is
- * the actual archive/restore capability.
+ * Archive Officer role manages it. ARCHIVE.MANAGE is the actual
+ * archive/restore capability; the READ grants are what it takes to
+ * properly review a file before committing it to retention -- its
+ * metadata (FILES.READ), its documents (ATTACHMENTS.READ/DOWNLOAD), its
+ * formal decision trail (MINUTES.READ) and its history (TIMELINE.READ).
+ * Deliberately no WORKFLOW.READ: an archived file's workflow is over and
+ * the Archive Officer never routes anything.
  */
-const ARCHIVE_OFFICER_PERMISSIONS = ["FILES.READ", "TIMELINE.READ", "ARCHIVE.MANAGE", "ARCHIVE.READ"];
+const ARCHIVE_OFFICER_PERMISSIONS = [
+  "FILES.READ",
+  "ATTACHMENTS.READ",
+  "ATTACHMENTS.DOWNLOAD",
+  "MINUTES.READ",
+  "TIMELINE.READ",
+  "ARCHIVE.MANAGE",
+  "ARCHIVE.READ",
+];
 
 const EXPLICIT_ROLE_PERMISSIONS = {
   // The Municipal Director sits above HOD in the routing chain (Registry ->

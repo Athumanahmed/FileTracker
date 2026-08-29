@@ -8,6 +8,8 @@ export const findByPhoneNumber = (phoneNumber) => prisma.citizen.findFirst({ whe
 
 export const create = (data) => prisma.citizen.create({ data });
 
+export const update = (id, data) => prisma.citizen.update({ where: { id }, data });
+
 /** Global Search's citizen half -- a lightweight top-N lookup, not a full directory query. */
 export const search = (term, limit) =>
   prisma.citizen.findMany({

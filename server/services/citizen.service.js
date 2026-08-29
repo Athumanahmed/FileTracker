@@ -1,5 +1,7 @@
 import { AppError } from "../utils/AppError.js";
+import { AUDIT_ACTIONS } from "../utils/auditActions.js";
 import * as citizenRepository from "../repositories/citizen.repository.js";
+import * as authRepository from "../repositories/auth.repository.js";
 import * as numberSequenceService from "./numberSequence.service.js";
 
 /**
@@ -42,6 +44,8 @@ export const findOrCreateCitizen = async ({ citizenId, citizenPayload, actorId }
       .join(" "),
     nationalId: citizenPayload.nationalId || null,
     phoneNumber: citizenPayload.phoneNumber || null,
+    // Opt-in by default; registry can pass false to suppress the citizen SMS alerts.
+    smsNotificationsEnabled: citizenPayload.smsNotificationsEnabled !== false,
     alternatePhoneNumber: citizenPayload.alternatePhoneNumber || null,
     email: citizenPayload.email || null,
     physicalAddress: citizenPayload.physicalAddress || null,
@@ -53,4 +57,28 @@ export const findOrCreateCitizen = async ({ citizenId, citizenPayload, actorId }
     organizationName: citizenPayload.organizationName || null,
     registeredById: actorId ?? null,
   });
+};
+
+/**
+ * Registry-controlled toggle for the citizen-facing SMS milestone alerts
+ * (see CitizenSmsMessage / citizenSms.subscriber.js). Applies to every file
+ * linked to this citizen, current and future.
+ */
+export const setSmsPreference = async ({ citizenId, enabled, actorId, ipAddress }) => {
+  const citizen = await citizenRepository.findById(citizenId);
+  if (!citizen) throw new AppError(404, "Citizen not found");
+
+  const updated = await citizenRepository.update(citizenId, { smsNotificationsEnabled: enabled });
+
+  await authRepository.createAuditLog({
+    userId: actorId,
+    action: AUDIT_ACTIONS.CITIZEN_SMS_PREFERENCE_UPDATED,
+    entity: "Citizen",
+    entityId: citizenId,
+    description: `Citizen SMS alerts ${enabled ? "enabled" : "disabled"} (${citizenId})`,
+    metadata: { smsNotificationsEnabled: enabled },
+    ipAddress,
+  });
+
+  return { id: updated.id, smsNotificationsEnabled: updated.smsNotificationsEnabled };
 };

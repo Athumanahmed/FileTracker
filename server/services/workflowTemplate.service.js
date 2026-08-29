@@ -41,6 +41,7 @@ const sanitizeListItem = (template) => ({
   id: template.id,
   name: template.name,
   code: template.code,
+  description: template.description,
   categoryId: template.categoryId,
   departmentId: template.departmentId,
   isActive: template.isActive,

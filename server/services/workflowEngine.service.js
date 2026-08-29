@@ -181,15 +181,28 @@ export const startWorkflow = async ({ fileId, templateId, toUserId, remarks, act
   const firstStep = template.steps.filter((s) => s.isActive).sort((a, b) => a.stepOrder - b.stepOrder)[0];
   if (!firstStep) throw new AppError(409, "Workflow template has no active steps");
 
-  if (toUserId) {
-    await assertTargetEligible({ step: firstStep, toUserId });
+  // The caller can name the first holder explicitly. If they don't, default
+  // it to themselves when they're eligible for the opening step -- e.g. a
+  // Registry officer starting a template whose first step is "Registry
+  // Review" holds it straight away instead of having to claim it back from
+  // the department queue. Otherwise it stays queued for anyone eligible.
+  let firstHolderId = toUserId ?? null;
+  if (firstHolderId) {
+    await assertTargetEligible({ step: firstStep, toUserId: firstHolderId });
+  } else {
+    try {
+      await assertTargetEligible({ step: firstStep, toUserId: actorId });
+      firstHolderId = actorId;
+    } catch {
+      firstHolderId = null;
+    }
   }
 
   const result = await workflowInstanceRepository.startInstance({
     fileId,
     templateId,
     firstStepId: firstStep.id,
-    assignedToId: toUserId ?? null,
+    assignedToId: firstHolderId,
     assignedDepartmentId: file.departmentId,
     dueDate: computeDueDate(firstStep.slaHours),
     performedById: actorId,
@@ -210,7 +223,9 @@ export const startWorkflow = async ({ fileId, templateId, toUserId, remarks, act
     actorId,
     sourceId: result.executionId,
     remarks,
-    recipientIds: toUserId ? [toUserId] : [],
+    // Notify the first holder only when it's someone other than whoever
+    // started the workflow (no point pinging yourself about your own action).
+    recipientIds: firstHolderId && firstHolderId !== actorId ? [firstHolderId] : [],
   });
 
   return { instance: sanitizeInstance(result.instance), currentAssignment: sanitizeAssignment(await fileAssignmentRepository.findCurrentByFileId(fileId)) };
@@ -511,16 +526,20 @@ export const transitionWorkflow = async ({ fileId, action, toUserId, remarks, ac
  * Claims an unclaimed, department-queued assignment -- acknowledging
  * receipt, not a workflow action.
  *
- * The department check only makes sense for a department/unit-scoped actor
- * (HOD/Supervisor/Officer) -- it narrows "anyone in the file's own
- * department" down to the right one. A department-less, global-scope actor
- * (Director, Registry, Archive, ICT Admin, ...) can never have a
- * department, so that check would reject them unconditionally regardless
- * of role -- e.g. every file starts its "Director Review" step queued to
- * the file's own department (see startWorkflow's assignedDepartmentId),
- * even though DIRECTOR itself is department-less by design. For such
- * actors, the step's own role/position requirement (assertTargetEligible
- * below) is the sole eligibility gate instead.
+ * Eligibility depends on whether the queued step names a required
+ * role/position:
+ *
+ *  - It does (e.g. "Registry Review" requires REGISTRY, "Director Review"
+ *    requires DIRECTOR): that requirement -- checked by assertTargetEligible
+ *    below -- is the sole gate, exactly as it is for every
+ *    forward/return/reassign. The file being *queued* to a department is
+ *    just where it waited; a role that routes files across departments
+ *    (Registry, Director) legitimately holds a different department, or
+ *    none, than the file's own. Requiring a department match here would
+ *    reject them regardless of role.
+ *
+ *  - It doesn't (a pure department-queue item): belonging to that
+ *    department is the only eligibility signal there is, so it's enforced.
  */
 export const claimAssignment = async ({ fileId, actorId, ipAddress }) => {
   const currentAssignment = await fileAssignmentRepository.findCurrentByFileId(fileId);
@@ -534,11 +553,7 @@ export const claimAssignment = async ({ fileId, actorId, ipAddress }) => {
   const step = currentAssignment.workflowStep;
   const hasRoleOrPositionRequirement = Boolean(step?.requiredRoleId || step?.requiredPositionId);
 
-  if (actor.department?.id) {
-    if (actor.department.id !== currentAssignment.assignedDepartmentId) {
-      throw new AppError(403, "You do not belong to the department this file is queued in");
-    }
-  } else if (!hasRoleOrPositionRequirement) {
+  if (!hasRoleOrPositionRequirement && actor.department?.id !== currentAssignment.assignedDepartmentId) {
     throw new AppError(403, "You do not belong to the department this file is queued in");
   }
 

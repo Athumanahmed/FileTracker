@@ -10,7 +10,7 @@ import * as citizenService from "./citizen.service.js";
 import * as numberSequenceService from "./numberSequence.service.js";
 import * as storageService from "../storage/storage.service.js";
 
-const SORTABLE_FIELDS = ["fileNumber", "registryNumber", "trackingNumber", "title", "createdAt", "priority", "status", "dueDate"];
+const SORTABLE_FIELDS = ["fileNumber", "registryNumber", "trackingNumber", "title", "createdAt", "updatedAt", "priority", "status", "dueDate"];
 const SEARCHABLE_FIELDS = ["fileNumber", "registryNumber", "trackingNumber", "title"];
 
 const sanitizeVersion = (version) =>
@@ -244,11 +244,17 @@ export const buildFileWhereClause = (query) => ({
   ...(query.categoryId ? { categoryId: query.categoryId } : {}),
   ...(query.citizenId ? { citizenId: query.citizenId } : {}),
   ...(query.citizenPhone ? { citizen: { phoneNumber: { contains: query.citizenPhone } } } : {}),
-  // "Owner" = the file's current holder, derived from FileAssignment
-  // (isCurrent: true) -- File deliberately has no denormalized owner
-  // column (see schema.prisma), so this is a relation filter, not a
-  // plain equality match.
-  ...(query.assignedToId ? { assignments: { some: { isCurrent: true, assignedToId: query.assignedToId } } } : {}),
+  // "Owner" = the file's current *active* holder, derived from
+  // FileAssignment (isCurrent: true) -- File deliberately has no
+  // denormalized owner column (see schema.prisma), so this is a relation
+  // filter, not a plain equality match. A terminal transition
+  // (APPROVE-at-final / REJECT / COMPLETE / CLOSE) leaves the row
+  // isCurrent: true but flips its status to COMPLETED -- excluding that
+  // here is what keeps a finished file out of the last holder's "My
+  // Assignments" work queue.
+  ...(query.assignedToId
+    ? { assignments: { some: { isCurrent: true, assignedToId: query.assignedToId, status: { not: "COMPLETED" } } } }
+    : {}),
   ...(query.dateFrom || query.dateTo
     ? {
         createdAt: {

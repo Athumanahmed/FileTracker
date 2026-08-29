@@ -32,3 +32,8 @@ export const listExpiredRetention = asyncHandler(async (req, res) => {
   const records = await archiveService.listExpiredRetention();
   res.status(200).json({ success: true, message: "Expired-retention records retrieved successfully.", data: records });
 });
+
+export const getArchiveStats = asyncHandler(async (req, res) => {
+  const stats = await archiveService.getArchiveStats();
+  res.status(200).json({ success: true, message: "Archive statistics retrieved successfully.", data: stats });
+});

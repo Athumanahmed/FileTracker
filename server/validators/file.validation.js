@@ -36,6 +36,9 @@ const citizenJsonRule = body("citizen")
     if (!parsed.firstName || !parsed.lastName) {
       throw new Error("citizen.firstName and citizen.lastName are required");
     }
+    if (parsed.smsNotificationsEnabled !== undefined && typeof parsed.smsNotificationsEnabled !== "boolean") {
+      throw new Error("citizen.smsNotificationsEnabled must be a boolean");
+    }
     return true;
   });
 
@@ -71,6 +74,6 @@ export const listFilesValidationRules = [
   query("assignedToId").optional().trim(),
   query("dateFrom").optional().isISO8601().withMessage("dateFrom must be a valid date"),
   query("dateTo").optional().isISO8601().withMessage("dateTo must be a valid date"),
-  query("sortBy").optional().isIn(["fileNumber", "registryNumber", "trackingNumber", "title", "createdAt", "priority", "status", "dueDate"]),
+  query("sortBy").optional().isIn(["fileNumber", "registryNumber", "trackingNumber", "title", "createdAt", "updatedAt", "priority", "status", "dueDate"]),
   query("sortOrder").optional().isIn(["asc", "desc"]),
 ];

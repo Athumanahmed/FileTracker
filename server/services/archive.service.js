@@ -139,3 +139,106 @@ export const listExpiredRetention = async () => {
   const records = await archiveRecordRepository.findExpiredRetention();
   return records.map((r) => ({ ...sanitize(r), file: r.file }));
 };
+
+const YEAR_MS = MS_PER_YEAR;
+
+/** Last `count` calendar months as { period: "YYYY-MM", count: 0 }, oldest first. */
+const buildRecentMonths = (count) => {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (count - 1 - i), 1);
+    return { period: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, count: 0 };
+  });
+};
+
+const monthKey = (date) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/**
+ * Archive Dashboard aggregates -- everything the archivist needs at a
+ * glance: how much is waiting, how much is held, and how the held stock is
+ * distributed across its remaining retention runway (so destruction-review
+ * workload can be anticipated, not just reacted to). Grouped in JS, same
+ * municipal-scale rationale as the reporting module.
+ */
+export const getArchiveStats = async () => {
+  const [records, readyGroups] = await Promise.all([
+    archiveRecordRepository.findAllForStats(),
+    archiveRecordRepository.countReadyToArchiveByStatus(),
+  ]);
+
+  const readyToArchive = { COMPLETED: 0, REJECTED: 0, CLOSED: 0, total: 0 };
+  for (const group of readyGroups) {
+    readyToArchive[group.status] = group._count._all;
+    readyToArchive.total += group._count._all;
+  }
+
+  const now = Date.now();
+  const archived = records.filter((r) => r.status === "ARCHIVED");
+  const restored = records.filter((r) => r.status === "RESTORED").length;
+
+  const runway = { expired: 0, within1: 0, within3: 0, within7: 0, beyond7: 0, none: 0 };
+  let expiredRetention = 0;
+  let withinRetention = 0;
+  let noRetentionSet = 0;
+
+  for (const record of archived) {
+    if (!record.retentionExpiresAt) {
+      noRetentionSet += 1;
+      runway.none += 1;
+      continue;
+    }
+    const yearsLeft = (new Date(record.retentionExpiresAt).getTime() - now) / YEAR_MS;
+    if (yearsLeft < 0) {
+      expiredRetention += 1;
+      runway.expired += 1;
+    } else {
+      withinRetention += 1;
+      if (yearsLeft <= 1) runway.within1 += 1;
+      else if (yearsLeft <= 3) runway.within3 += 1;
+      else if (yearsLeft <= 7) runway.within7 += 1;
+      else runway.beyond7 += 1;
+    }
+  }
+
+  const months = buildRecentMonths(6);
+  const monthIndex = new Map(months.map((m, i) => [m.period, i]));
+  for (const record of archived) {
+    if (!record.archivedAt) continue;
+    const idx = monthIndex.get(monthKey(record.archivedAt));
+    if (idx !== undefined) months[idx].count += 1;
+  }
+
+  const upcomingExpiries = archived
+    .filter((r) => r.retentionExpiresAt)
+    .sort((a, b) => new Date(a.retentionExpiresAt) - new Date(b.retentionExpiresAt))
+    .slice(0, 5)
+    .map((r) => ({
+      fileId: r.file?.id ?? null,
+      fileNumber: r.file?.fileNumber ?? null,
+      title: r.file?.title ?? null,
+      retentionExpiresAt: r.retentionExpiresAt,
+      overdue: new Date(r.retentionExpiresAt).getTime() < now,
+    }));
+
+  return {
+    readyToArchive,
+    archived: archived.length,
+    restored,
+    expiredRetention,
+    withinRetention,
+    noRetentionSet,
+    archivedByMonth: months,
+    retentionRunway: [
+      { key: "expired", label: "Expired", count: runway.expired },
+      { key: "within1", label: "< 1 yr", count: runway.within1 },
+      { key: "within3", label: "1–3 yrs", count: runway.within3 },
+      { key: "within7", label: "3–7 yrs", count: runway.within7 },
+      { key: "beyond7", label: "7+ yrs", count: runway.beyond7 },
+      { key: "none", label: "No expiry", count: runway.none },
+    ],
+    upcomingExpiries,
+  };
+};
