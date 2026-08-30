@@ -13,7 +13,7 @@ itself.
 
 ## Which command do I run?
 
-The recipe is **identical** in dev and on the VPS — the only thing that
+The recipe is **identical** in dev and on the VPS — the only t hing that
 changes is which compose file you point at. Three steps, always in this
 order:
 
@@ -65,6 +65,9 @@ Copy the example env files and fill them in:
 cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
+
+(`citizen-portal/` needs no env file for the default setup — its Vite config
+proxies `/api` to `localhost:5051`.)
 
 **`server/.env`** — the values below match `docker-compose.dev.yml`'s
 defaults, so if you use the compose file as-is you can copy them verbatim:
@@ -133,7 +136,8 @@ docker compose -f docker-compose.dev.yml logs -f backend frontend
 
 When it's up:
 
-- App → `http://localhost:3000`
+- Internal staff app → `http://localhost:3000`
+- Citizen tracking portal (public, unauthenticated) → `http://localhost:3001`
 - API → `http://localhost:5051`
 - MinIO Console → `http://localhost:9001` (login with the `MINIO_ACCESS_KEY`
   / `MINIO_SECRET_KEY` values above — useful for browsing uploaded files,
@@ -298,8 +302,8 @@ conflicting before starting fresh.
 
 ```
 File Tracking Management System/
-├── docker-compose.yml       # production-style: static frontend build + no-hot-reload backend
-├── docker-compose.dev.yml   # full dev stack: db + minio + hot-reload backend + hot-reload frontend
+├── docker-compose.yml       # production-style: static frontend builds + no-hot-reload backend
+├── docker-compose.dev.yml   # full dev stack: db + minio + redis + hot-reload backend + both hot-reload frontends
 ├── server/
 │   ├── Dockerfile           # production image (used by docker-compose.yml)
 │   ├── Dockerfile.dev       # dev image (used by docker-compose.dev.yml)
@@ -309,29 +313,49 @@ File Tracking Management System/
 │   │   └── seeds/           # one file per seed concern, orchestrated by seed.js
 │   ├── controller/ → services/ → repositories/   # strict layering, in that call direction
 │   └── .env
-└── client/
-    ├── Dockerfile           # production image (nginx static build)
-    ├── Dockerfile.dev       # dev image (Vite dev server)
-    ├── src/
-    │   ├── pages/            # shared, role-agnostic top-level pages
-    │   ├── components/
-    │   ├── hooks/            # one React Query hook per file
-    │   └── utils/
-    └── .env
+├── client/                 # internal staff app (authenticated), port 3000
+│   ├── Dockerfile           # production image (nginx static build)
+│   ├── Dockerfile.dev       # dev image (Vite dev server)
+│   ├── src/
+│   │   ├── pages/            # shared, role-agnostic top-level pages
+│   │   ├── components/
+│   │   ├── hooks/            # one React Query hook per file
+│   │   └── utils/
+│   └── .env
+└── citizen-portal/         # public file-tracking portal (no auth), port 3001
+    ├── Dockerfile           # production image (nginx: static build + /api/v1/track proxy)
+    ├── Dockerfile.dev       # dev image (Vite dev server, proxies /api to backend)
+    └── src/                  # single page — TrackForm + FileResult, SW/EN toggle
 ```
 
 ---
 
 ## 9. Known limitations (as of this guide)
 
-- Director, Officer, and Archive Officer dashboards are still placeholders.
-- Workflow Templates have no admin UI yet — the seeded template above was
-  created directly via `prisma/seeds/seedWorkflowTemplates.js`.
+- Director and Officer dashboards are still placeholders. The Archive Officer
+  now has a real dashboard (stats, charts, retention-review queue).
+- Workflow Templates now have a full admin UI (Admin → Workflow Templates):
+  create/edit/activate templates and add/edit/remove their ordered steps.
+  The seeded template is still created via
+  `prisma/seeds/seedWorkflowTemplates.js` as a ready-to-use default.
 - `Request Information` still needs a manually-entered user ID (by design —
   it isn't restricted to a single eligible role like Forward/Return are).
-- No public, unauthenticated "track my file" page — the QR code on a
-  registered file links into the authenticated app, not a citizen-facing
-  page.
+- Citizen SMS alerts: a file linked to a `Citizen` with a phone number
+  triggers a Swahili SMS (one segment) on registration and on each final
+  decision (approved / rejected / completed / closed / more-info needed). Delivery goes through the same Beem queue + cron as staff SMS
+  (`CitizenSmsMessage` table). Registry can turn it off per citizen (toggle
+  on the register-file wizard and the file Overview tab). Requires the
+  `BEEM_AFRICA_*` / `SENDER_ID` env vars to actually send; without them the
+  rows still enqueue and land in `DEAD_LETTER`. The portal link is added to
+  the SMS only when `CITIZEN_PORTAL_URL` is a real `https://` host — Beem's
+  spam filter 403s any message containing `http://` / `localhost` / a bare
+  IP, so in dev the SMS just carries the tracking number.
+- Public file tracking: a **separate app** (`citizen-portal/`, port 3001,
+  no auth) — the citizen enters their tracking number plus the phone it was
+  registered against and sees a status + milestone view (Swahili/English
+  toggle). Both values must match; only citizen-safe fields are returned (no
+  minutes, staff names, or attachments). Backed by the single public
+  endpoint `GET /api/v1/track`.
 
 ---
 

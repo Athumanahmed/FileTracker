@@ -71,6 +71,11 @@ services:
       MINIO_ACCESS_KEY: fileTrackerMinioAdmin
       MINIO_SECRET_KEY: FileTracker-Minio-@2026
       REDIS_URL: redis://redis:6379
+      # Override these in ./server/.env for a real domain, e.g.
+      # CITIZEN_PORTAL_URL=https://track.tabora.go.tz
+      # CORS_ORIGINS=https://efms.tabora.go.tz,https://track.tabora.go.tz
+      CITIZEN_PORTAL_URL: ${CITIZEN_PORTAL_URL:-http://localhost:3001}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
     depends_on:
       db:
         condition: service_healthy
@@ -91,6 +96,20 @@ services:
       - backend
     ports:
       - "3000:80"
+
+  # Public, unauthenticated citizen file-tracking portal (separate app).
+  # Its own nginx proxies /api/v1/track to the backend, so no build-time
+  # backend URL is needed.
+  citizen-portal:
+    build:
+      context: ./citizen-portal
+      dockerfile: Dockerfile
+    container_name: fileTracker-citizen-portal
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3001:80"
 
 volumes:
   postgres_data:
